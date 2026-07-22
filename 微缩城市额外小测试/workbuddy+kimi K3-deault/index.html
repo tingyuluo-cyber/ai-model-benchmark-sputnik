@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微缩城市 · Miniature City</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05060a;
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  #hud {
+    position: fixed; top: 16px; left: 16px; z-index: 10;
+    width: 250px; padding: 14px 16px;
+    background: rgba(10, 14, 22, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 14px;
+    color: #e8edf5;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    user-select: none;
+  }
+  #hud h1 { font-size: 15px; font-weight: 600; letter-spacing: 1px; margin-bottom: 8px; }
+  #clock {
+    font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums;
+    line-height: 1; margin-bottom: 6px;
+  }
+  #phase { font-size: 12px; opacity: 0.75; margin-bottom: 10px; }
+  #phase b { font-weight: 600; }
+  #tlWrap { position: relative; height: 18px; margin: 2px 0 8px; }
+  #tlGrad {
+    position: absolute; inset: 6px 0; border-radius: 3px;
+    background: linear-gradient(90deg,
+      #0b1030 0%, #3a4a7a 14%, #7ec8e3 25%, #bfe8f5 33%,
+      #bfe8f5 58%, #ffb36b 68%, #ff7a59 76%, #3a2a55 86%, #0b1030 100%);
+  }
+  #tlDot {
+    position: absolute; top: 50%; width: 12px; height: 12px;
+    border-radius: 50%; background: #fff;
+    border: 2px solid rgba(0,0,0,0.35);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px rgba(255,255,255,0.8);
+    pointer-events: none;
+  }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .btn {
+    flex: 1; padding: 6px 0; font-size: 12px; color: #e8edf5;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: rgba(255, 255, 255, 0.18); }
+  .seg { display: flex; gap: 4px; flex: 1; }
+  .seg .btn.on { background: rgba(120, 180, 255, 0.35); border-color: rgba(120,180,255,0.6); }
+  .sliderRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .sliderRow span { width: 26px; opacity: 0.8; }
+  input[type="range"] { flex: 1; accent-color: #78b4ff; cursor: pointer; }
+  #stats {
+    font-size: 11px; opacity: 0.65; line-height: 1.7;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 8px; margin-top: 2px;
+  }
+  #hint {
+    position: fixed; bottom: 14px; right: 16px; z-index: 10;
+    font-size: 11px; color: rgba(255,255,255,0.55);
+    background: rgba(10, 14, 22, 0.5); padding: 6px 12px;
+    border-radius: 8px; letter-spacing: 0.5px;
+  }
+  #err {
+    position: fixed; inset: 0; z-index: 99; display: none;
+    align-items: center; justify-content: center;
+    color: #ffb0b0; background: #1a0508; font-size: 14px; padding: 40px; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="hud">
+  <h1>微缩城市 · MINIATURE CITY</h1>
+  <div id="clock">12:00</div>
+  <div id="phase">正午 · <b>晴天模式</b></div>
+  <div id="tlWrap"><div id="tlGrad"></div><div id="tlDot"></div></div>
+  <div class="sliderRow"><span>时间</span><input id="timeSlider" type="range" min="0" max="24" step="0.05" value="12"></div>
+  <div class="row">
+    <button id="playBtn" class="btn" style="flex:0 0 64px;">⏸ 暂停</button>
+    <div class="seg">
+      <button class="btn spd" data-v="1">1×</button>
+      <button class="btn spd" data-v="4">4×</button>
+      <button class="btn spd on" data-v="16">16×</button>
+      <button class="btn spd" data-v="60">60×</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="seg">
+      <button class="btn jump" data-t="0">午夜</button>
+      <button class="btn jump" data-t="6.3">清晨</button>
+      <button class="btn jump" data-t="12">正午</button>
+      <button class="btn jump" data-t="18.1">黄昏</button>
+      <button class="btn jump" data-t="22">夜晚</button>
+    </div>
+  </div>
+  <div id="stats">初始化中…</div>
+</div>
+
+<div id="hint">左键旋转 · 右键平移 · 滚轮缩放</div>
+<div id="err">three.js 加载失败，请确认 libs/ 目录下的 three.min.js 与 OrbitControls.js 存在。</div>
+
+<script src="libs/three.min.js"></script>
+<script src="libs/OrbitControls.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.getElementById('err').style.display = 'flex';
+  }
+</script>
+<script src="js/app.js"></script>
+</body>
+</html>

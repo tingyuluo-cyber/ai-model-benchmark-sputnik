@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sputnik-1 · 斯普特尼克一号</title>
+<style>
+  :root {
+    --bg: #050505;
+    --fg: #f5f5f5;
+    --dim: #8a8a8a;
+    --line: #1a1a1a;
+    --accent: #e8e8e8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+  #stage canvas { display: block; }
+
+  .ui {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .ui > * { pointer-events: auto; }
+
+  /* 顶部左侧 标题区 */
+  .brand {
+    top: 36px;
+    left: 44px;
+    max-width: 360px;
+  }
+  .brand .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .brand h1 {
+    font-size: 38px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+  .brand h1 strong {
+    font-weight: 600;
+  }
+  .brand .sub {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--dim);
+    letter-spacing: 0.06em;
+  }
+
+  /* 右上 时间戳 */
+  .stamp {
+    top: 36px;
+    right: 44px;
+    text-align: right;
+  }
+  .stamp .date {
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+  }
+  .stamp .date .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: #fff;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  .stamp .meta {
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  /* 右侧 信息面板 */
+  .panel {
+    top: 50%;
+    right: 44px;
+    transform: translateY(-50%);
+    width: 320px;
+    padding: 28px 28px 26px;
+    border: 1px solid var(--line);
+    background: rgba(10, 10, 10, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .panel h2 {
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    color: var(--dim);
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .panel .row:last-child { border-bottom: none; }
+  .panel .row .k {
+    color: var(--dim);
+    letter-spacing: 0.04em;
+  }
+  .panel .row .v {
+    color: var(--fg);
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.04em;
+  }
+  .panel .desc {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: #cfcfcf;
+    letter-spacing: 0.02em;
+  }
+  .panel .desc .lede {
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* 底部 操作提示 */
+  .hint {
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+  .hint .item {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hint .key {
+    display: inline-block;
+    padding: 3px 8px;
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  /* 左下 计数器 */
+  .counter {
+    bottom: 32px;
+    left: 44px;
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--dim);
+    letter-spacing: 0.14em;
+    line-height: 1.8;
+  }
+  .counter .big {
+    color: var(--accent);
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    font-weight: 300;
+  }
+
+  /* 加载 */
+  .loader {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.6s ease;
+  }
+  .loader.hide { opacity: 0; pointer-events: none; }
+  .loader .ring {
+    width: 28px; height: 28px;
+    border: 1px solid var(--line);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 响应式 */
+  @media (max-width: 860px) {
+    .brand { top: 24px; left: 24px; }
+    .brand h1 { font-size: 28px; }
+    .stamp { top: 24px; right: 24px; }
+    .panel {
+      right: 16px; left: 16px;
+      top: auto; bottom: 96px;
+      transform: none;
+      width: auto;
+      padding: 20px;
+    }
+    .panel h2 { margin-bottom: 14px; padding-bottom: 10px; }
+    .panel .row { padding: 8px 0; font-size: 12px; }
+    .panel .desc { margin-top: 16px; padding-top: 14px; font-size: 12px; }
+    .hint { gap: 16px; font-size: 10px; bottom: 18px; }
+    .counter { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <div class="loader" id="loader"><div class="ring"></div></div>
+
+  <div class="ui brand">
+    <div class="eyebrow">Спутник-1 · 1957</div>
+    <h1><strong>Sputnik</strong>‑1</h1>
+    <div class="sub">The first artificial Earth satellite</div>
+  </div>
+
+  <div class="ui stamp">
+    <div class="date"><span class="dot"></span>04 · OCT · 1957</div>
+    <div class="meta">Baikonur · 19:28 UTC</div>
+  </div>
+
+  <div class="ui panel">
+    <h2>Mission Profile</h2>
+    <div class="row"><span class="k">Launch Vehicle</span><span class="v">R‑7 / Sputnik 8K71PS</span></div>
+    <div class="row"><span class="k">Launch Site</span><span class="v">Baikonur Cosmodrome</span></div>
+    <div class="row"><span class="k">Mass</span><span class="v">83.6 kg</span></div>
+    <div class="row"><span class="k">Diameter</span><span class="v">58 cm</span></div>
+    <div class="row"><span class="k">Antennas</span><span class="v">4 × 2.4–2.9 m</span></div>
+    <div class="row"><span class="k">Orbital Period</span><span class="v">96.2 min</span></div>
+    <div class="row"><span class="k">Apogee / Perigee</span><span class="v">947 / 215 km</span></div>
+    <div class="row"><span class="k">Decay</span><span class="v">04 Jan 1958</span></div>
+
+    <div class="desc">
+      <div class="lede">人类第一颗人造地球卫星</div>
+      1957 年 10 月 4 日,苏联用 R‑7 火箭将斯普特尼克一号送入近地轨道。它在太空中持续发回蜂鸣信号 21 天,绕地球飞行约 1.44 亿公里后,于 1958 年 1 月 4 日再入大气层烧毁。这颗 83.6 公斤的铝合金小球,正式开启了人类的太空时代。
+    </div>
+  </div>
+
+  <div class="ui hint">
+    <div class="item"><span class="key">DRAG</span> Rotate</div>
+    <div class="item"><span class="key">SCROLL</span> Zoom</div>
+    <div class="item"><span class="key">RIGHT</span> Pan</div>
+  </div>
+
+  <div class="ui counter">
+    <div>ORBITS COMPLETED</div>
+    <div class="big" id="orbitCount">1,440</div>
+    <div>estimated, 1957–1958</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const stage = document.getElementById('stage');
+    const loader = document.getElementById('loader');
+
+    // ---------- Scene ----------
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+    // 雾感: 远处变暗
+    scene.fog = new THREE.Fog(0x050505, 8, 22);
+
+    // ---------- Camera ----------
+    const camera = new THREE.PerspectiveCamera(
+      35,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(3.2, 1.4, 4.0);
+
+    // ---------- Renderer ----------
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    stage.appendChild(renderer.domElement);
+
+    // ---------- Lights ----------
+    // 关键光: 冷白(主光)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    keyLight.position.set(4, 3, 5);
+    scene.add(keyLight);
+
+    // 补光: 弱蓝灰(冷调反差,保持黑白基调)
+    const fillLight = new THREE.DirectionalLight(0xb0c4d8, 0.5);
+    fillLight.position.set(-5, -1, 2);
+    scene.add(fillLight);
+
+    // 边缘光: 从后方
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    rimLight.position.set(-2, 2, -4);
+    scene.add(rimLight);
+
+    // 微弱环境
+    const ambient = new THREE.AmbientLight(0xffffff, 0.18);
+    scene.add(ambient);
+
+    // ---------- Sputnik 主体 ----------
+    const sputnik = new THREE.Group();
+    scene.add(sputnik);
+
+    // 球壳(抛光铝)
+    const bodyRadius = 1.0;
+    const bodyGeom = new THREE.SphereGeometry(bodyRadius, 96, 64);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0xd8d8d8,
+      metalness: 0.92,
+      roughness: 0.28,
+      envMapIntensity: 1.0,
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    sputnik.add(body);
+
+    // 表面纵向经线装饰(原型的散热/结构线)
+    // 用细 TubeGeometry 沿球面经线贴合,做出 24 条均匀分布的纵向沟纹
+    const stripeGroup = new THREE.Group();
+    sputnik.add(stripeGroup);
+    const stripeCount = 24;
+    const stripeMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      metalness: 0.7,
+      roughness: 0.45,
+    });
+    for (let i = 0; i < stripeCount; i++) {
+      const lon = (i / stripeCount) * Math.PI * 2;
+      const points = [];
+      for (let j = 0; j <= 48; j++) {
+        const phi = (j / 48) * Math.PI; // 0 → π  (北极 → 南极)
+        const x = bodyRadius * Math.sin(phi) * Math.cos(lon);
+        const z = bodyRadius * Math.sin(phi) * Math.sin(lon);
+        const y = bodyRadius * Math.cos(phi);
+        points.push(new THREE.Vector3(x, y, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const stripeGeom = new THREE.TubeGeometry(curve, 96, 0.006, 6, false);
+      const stripe = new THREE.Mesh(stripeGeom, stripeMat);
+      stripeGroup.add(stripe);
+    }
+
+    // 额外加 3 条赤道纬线圈,让结构更明显
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: 0x333333, metalness: 0.75, roughness: 0.4,
+    });
+    [-0.45, 0, 0.45].forEach(offY => {
+      const r = Math.sqrt(Math.max(0, bodyRadius * bodyRadius - offY * offY));
+      const ringGeom = new THREE.TorusGeometry(r, 0.008, 6, 96);
+      const ring = new THREE.Mesh(ringGeom, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = offY;
+      sputnik.add(ring);
+    });
+
+    // 球体前后"极帽"(原型有半球凸起)
+    const capMat = new THREE.MeshStandardMaterial({
+      color: 0xb8b8b8,
+      metalness: 0.9,
+      roughness: 0.35,
+    });
+    const capFront = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+      capMat
+    );
+    capFront.position.set(0, bodyRadius * 0.98, 0);
+    capFront.rotation.x = Math.PI;
+    sputnik.add(capFront);
+
+    const capBack = capFront.clone();
+    capBack.position.set(0, -bodyRadius * 0.98, 0);
+    sputnik.add(capBack);
+
+    // 底部安装法兰(原型下方有连接件)
+    const flangeMat = new THREE.MeshStandardMaterial({
+      color: 0x9a9a9a,
+      metalness: 0.85,
+      roughness: 0.4,
+    });
+    const flange = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.15, 0.12, 24),
+      flangeMat
+    );
+    flange.position.set(0, -bodyRadius - 0.04, 0);
+    sputnik.add(flange);
+
+    // ---------- 4 根鞭状天线 ----------
+    const antennaGroup = new THREE.Group();
+    sputnik.add(antennaGroup);
+
+    const antennaMat = new THREE.MeshStandardMaterial({
+      color: 0xeeeeee,
+      metalness: 0.5,
+      roughness: 0.4,
+    });
+
+    function makeAntenna(direction) {
+      // direction: 单位向量,天线从球体延伸的方向
+      const len = 2.5;
+      const segs = 24;
+      const path = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(
+          direction.x * len * 0.35,
+          direction.y * len * 0.45,
+          direction.z * len * 0.35
+        ),
+        new THREE.Vector3(
+          direction.x * len * 0.7,
+          direction.y * len * 0.85,
+          direction.z * len * 0.7
+        ),
+        new THREE.Vector3(
+          direction.x * len * 1.0,
+          direction.y * len * 1.05,
+          direction.z * len * 1.0
+        ),
+      ]);
+      const tubeGeom = new THREE.TubeGeometry(path, segs, 0.012, 6, false);
+      const tube = new THREE.Mesh(tubeGeom, antennaMat);
+      return tube;
+    }
+
+    // 4 根天线:从球体后方(底端)向 4 个方向略向下散开
+    const antennaConfigs = [
+      { dir: new THREE.Vector3( 0.0,  0.0,  1.0), rot: 0 },
+      { dir: new THREE.Vector3( 0.0,  0.0, -1.0), rot: 0 },
+      { dir: new THREE.Vector3( 1.0,  0.0,  0.0), rot: 0 },
+      { dir: new THREE.Vector3(-1.0,  0.0,  0.0), rot: 0 },
+    ];
+    antennaConfigs.forEach(cfg => {
+      const a = makeAntenna(cfg.dir);
+      // 起点接到球体下方
+      a.position.set(0, -bodyRadius * 0.6, 0);
+      antennaGroup.add(a);
+    });
+
+    // 天线根部小连接球
+    const baseNodeMat = new THREE.MeshStandardMaterial({
+      color: 0x444444, metalness: 0.7, roughness: 0.4,
+    });
+    for (let i = 0; i < 4; i++) {
+      const node = new THREE.Mesh(
+        new THREE.SphereGeometry(0.04, 16, 12),
+        baseNodeMat
+      );
+      const a = i * (Math.PI / 2);
+      node.position.set(
+        Math.cos(a) * bodyRadius * 0.95,
+        -bodyRadius * 0.55,
+        Math.sin(a) * bodyRadius * 0.95
+      );
+      antennaGroup.add(node);
+    }
+
+    // ---------- 环境反射 (HDRI 替代: 渐变 cube) ----------
+    // 简单的渐变环境贴图,让金属球有反射
+    const pmremGen = new THREE.PMREMGenerator(renderer);
+    const envScene = new THREE.Scene();
+    // 制造一个 黑白渐变的环境
+    const envGeom = new THREE.SphereGeometry(50, 32, 16);
+    const envMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      uniforms: {
+        topColor: { value: new THREE.Color(0xffffff) },
+        bottomColor: { value: new THREE.Color(0x111111) },
+      },
+      vertexShader: `
+        varying vec3 vWorldPos;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vWorldPos;
+        uniform vec3 topColor;
+        uniform vec3 bottomColor;
+        void main() {
+          float t = normalize(vWorldPos).y * 0.5 + 0.5;
+          vec3 c = mix(bottomColor, topColor, smoothstep(0.0, 1.0, t));
+          gl_FragColor = vec4(c, 1.0);
+        }
+      `,
+    });
+    envScene.add(new THREE.Mesh(envGeom, envMat));
+    const envMap = pmremGen.fromScene(envScene, 0.04).texture;
+    scene.environment = envMap;
+    pmremGen.dispose();
+
+    // ---------- Controls ----------
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.rotateSpeed = 0.8;
+    controls.zoomSpeed = 0.7;
+    controls.minDistance = 2.2;
+    controls.maxDistance = 9;
+    controls.enablePan = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
+    controls.target.set(0, 0, 0);
+
+    // 鼠标按下时停止自转
+    renderer.domElement.addEventListener('pointerdown', () => {
+      controls.autoRotate = false;
+    });
+
+    // ---------- Resize ----------
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ---------- Animate ----------
+    let startTime = performance.now();
+    function animate() {
+      const t = (performance.now() - startTime) * 0.001;
+      // 天线根部微抖动(模拟在轨姿态)
+      antennaGroup.rotation.y = Math.sin(t * 0.4) * 0.02;
+      antennaGroup.rotation.x = Math.cos(t * 0.3) * 0.015;
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // 隐藏 loader
+    setTimeout(() => loader.classList.add('hide'), 300);
+
+    // ---------- 计数器动态化(装饰) ----------
+    const orbitEl = document.getElementById('orbitCount');
+    let displayOrbit = 1440;
+    setInterval(() => {
+      // 缓慢跳数,纯装饰
+      displayOrbit += 1;
+      orbitEl.textContent = displayOrbit.toLocaleString();
+    }, 1200);
+  </script>
+</body>
+</html>

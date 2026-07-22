@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>斯普特尼克一号 (Sputnik 1) - 3D 实体交互展示</title>
+  <meta name="description" content="人类首颗人造地球卫星斯普特尼克一号（Sputnik 1）的高精度 3D 交互实体建模展示与历史科技档案。" />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD Overlay Layer -->
+  <div class="hud-overlay">
+    <!-- Top Bar Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="mission-tag">СССР • 1957.10.04</div>
+        <h1 class="main-title">SPUTNIK 1 <span class="cn-title">斯普特尼克一号</span></h1>
+        <p class="subtitle">人类历史上第一颗人造地球卫星 • 3D 实体模型展示</p>
+      </div>
+
+      <div class="header-controls">
+        <!-- Telemetry Beep Audio Toggle -->
+        <button id="btn-audio" class="control-btn audio-btn" title="播放/暂停卫星 20.005 MHz 蜂鸣电波信号">
+          <div class="audio-icon">
+            <span class="bar bar1"></span>
+            <span class="bar bar2"></span>
+            <span class="bar bar3"></span>
+          </div>
+          <span class="btn-text">电波信号 (20.005 MHz)</span>
+        </button>
+
+        <!-- View Mode Selectors -->
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="realistic">实体材质</button>
+          <button class="mode-btn" data-mode="wireframe">线框结构</button>
+          <button class="mode-btn" data-mode="blueprint">蓝图透视</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hotspot Container -->
+    <div id="hotspots-container"></div>
+
+    <!-- Main Content Grid -->
+    <main class="content-grid">
+      <!-- Left Panel: Technical Specifications -->
+      <aside class="panel left-panel glass-card">
+        <div class="panel-header">
+          <div class="panel-badge">TECHNICAL METRICS</div>
+          <h2>技术参数规范</h2>
+        </div>
+        
+        <div class="specs-list">
+          <div class="spec-item">
+            <span class="spec-label">卫星总质量</span>
+            <span class="spec-value">83.6 <small>kg</small></span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">球体直径</span>
+            <span class="spec-value">58.0 <small>cm</small></span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">天线展开长度</span>
+            <span class="spec-value">2.4 m / 2.9 m</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">轨道运行周期</span>
+            <span class="spec-value">96.2 <small>min</small></span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">远地点 / 近地点</span>
+            <span class="spec-value">939 km / 215 km</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">轨道倾角</span>
+            <span class="spec-value">65.1°</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">无线电发射功率</span>
+            <span class="spec-value">1.0 <small>W (20/40 MHz)</small></span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">供电系统</span>
+            <span class="spec-value">银锌蓄电池 (3组)</span>
+          </div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <div class="quick-nav">
+          <div class="nav-title">快速视角锁定</div>
+          <div class="nav-buttons">
+            <button class="nav-btn" data-target="overview">全景视角</button>
+            <button class="nav-btn" data-target="hull">卫星球壳</button>
+            <button class="nav-btn" data-target="antennas">通信天线</button>
+            <button class="nav-btn" data-target="flange">赤道法兰</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Dynamic Inspection & History -->
+      <aside class="panel right-panel glass-card">
+        <div id="info-card" class="info-content">
+          <div class="panel-badge" id="info-badge">HISTORICAL OVERVIEW</div>
+          <h2 id="info-title">人类太空时代的开端</h2>
+          <p id="info-description" class="info-desc">
+            1957年10月4日晚上10点28分（莫斯科时间），苏联在哈萨克斯坦拜科努尔航天发射场使用 R-7 洲际弹道导弹改装的运载火箭，成功将“斯普特尼克一号”（Sputnik 1，意为“伴侣号”）送入近地轨道。
+            <br/><br/>
+            球体由双半球铝镁合金精准冲压而成，表面经抛光处理以反射光线并维持热平衡。这颗球体在轨运行了 92 天，绕地球飞行 1440 圈，行驶约 7000 万公里，标志着人类太空探索新纪元的到来。
+          </p>
+          
+          <div id="info-features" class="info-features-grid">
+            <div class="feature-card">
+              <div class="feature-num">22日</div>
+              <div class="feature-txt">连续向全球广播“哔-哔”无线电信号</div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-num">1440圈</div>
+              <div class="feature-txt">绕地球公转轨道圈数</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom Timeline Footer -->
+    <footer class="bottom-bar">
+      <div class="timeline-container glass-card">
+        <div class="timeline-title">使命时间轴 Timeline</div>
+        <div class="timeline-track">
+          <div class="timeline-step active">
+            <div class="step-dot"></div>
+            <div class="step-date">1957.10.04</div>
+            <div class="step-label">拜科努尔成功发射</div>
+          </div>
+          <div class="timeline-line"></div>
+          <div class="timeline-step active">
+            <div class="step-dot"></div>
+            <div class="step-date">1957.10.26</div>
+            <div class="step-label">电池耗尽 (信号持续22天)</div>
+          </div>
+          <div class="timeline-line"></div>
+          <div class="timeline-step">
+            <div class="step-dot"></div>
+            <div class="step-date">1958.01.04</div>
+            <div class="step-label">在大气层中烧毁再入</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="interaction-hints">
+        <div class="hint-item"><span class="hint-key">拖拽</span> 旋转视角</div>
+        <div class="hint-item"><span class="hint-key">滚轮</span> 缩放距离</div>
+        <div class="hint-item"><span class="hint-key">点击标点</span> 探索组件</div>
+        <button id="btn-auto-rotate" class="toggle-pill active">Auto Orbit: ON</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Local Standalone Scripts (Guarantees working when double-clicking index.html directly via file://) -->
+  <script src="./js/three.min.js"></script>
+  <script src="./js/OrbitControls.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

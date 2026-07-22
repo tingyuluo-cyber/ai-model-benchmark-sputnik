@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斯普特尼克一号 · Sputnik 1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700&display=swap');
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --bg: #0a0a0a;
+    --fg: #e0e0e0;
+    --accent: #cccccc;
+    --muted: #666;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Noto Serif SC', 'Georgia', 'Times New Roman', serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    cursor: grab;
+    z-index: 1;
+  }
+
+  #canvas-container:active {
+    cursor: grabbing;
+  }
+
+  /* Info overlay */
+  .info-overlay {
+    position: fixed;
+    bottom: 60px;
+    left: 60px;
+    z-index: 10;
+    pointer-events: none;
+    max-width: 420px;
+  }
+
+  .title-block {
+    margin-bottom: 20px;
+  }
+
+  .title-en {
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .title-cn {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    line-height: 1.1;
+    color: var(--fg);
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: var(--fg);
+    margin: 20px 0;
+    opacity: 0.4;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .stats {
+    display: flex;
+    gap: 40px;
+    margin-top: 24px;
+  }
+
+  .stat-item {}
+  .stat-value {
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--fg);
+    letter-spacing: 2px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  /* Top right hint */
+  .hint {
+    position: fixed;
+    top: 40px;
+    right: 60px;
+    z-index: 10;
+    pointer-events: none;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  /* decorative orbit ring */
+  .orbit-label {
+    position: fixed;
+    bottom: 40px;
+    right: 60px;
+    z-index: 10;
+    pointer-events: none;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 768px) {
+    .info-overlay {
+      left: 28px;
+      bottom: 40px;
+      max-width: 280px;
+    }
+    .title-cn {
+      font-size: 30px;
+      letter-spacing: 4px;
+    }
+    .description {
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .stats {
+      gap: 24px;
+    }
+    .stat-value {
+      font-size: 20px;
+    }
+    .hint {
+      top: 24px;
+      right: 28px;
+    }
+    .orbit-label {
+      bottom: 24px;
+      right: 28px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div class="info-overlay">
+  <div class="title-block">
+    <div class="title-en">Sputnik 1</div>
+    <div class="title-cn">斯普特尼克<br>一号</div>
+  </div>
+  <div class="divider"></div>
+  <p class="description">
+    1957年10月4日，苏联成功发射人类历史上第一颗人造地球卫星。
+    这颗直径58厘米、重83.6千克的金属球体，以每96分钟一圈的速度
+    环绕地球，向世界发出断续的无线电信号——宣告了太空时代的到来。
+  </p>
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-value">1957</div>
+      <div class="stat-label">发射年份</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">83.6 kg</div>
+      <div class="stat-label">质量</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">Ø 58cm</div>
+      <div class="stat-label">直径</div>
+    </div>
+  </div>
+</div>
+
+<div class="hint">拖拽旋转 · 滚轮缩放</div>
+<div class="orbit-label">СПУТНИК-1 · 地球轨道 · 1957.10.04</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/** ─── Scene Setup ─── */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+
+// subtle gradient background via scene background
+scene.background = new THREE.Color(0x0a0a0a);
+scene.fog = new THREE.Fog(0x0a0a0a, 8, 30);
+
+/** ─── Camera ─── */
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+camera.position.set(2.5, 1.6, 4.5);
+camera.lookAt(0, 0, 0);
+
+/** ─── Renderer ─── */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+container.appendChild(renderer.domElement);
+
+/** ─── Controls ─── */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, -0.1, 0);
+controls.minDistance = 2;
+controls.maxDistance = 8;
+controls.maxPolarAngle = Math.PI * 0.75;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.3;
+controls.update();
+
+/** ─── Lighting ─── */
+// Key light
+const keyLight = new THREE.DirectionalLight(0xffffff, 4);
+keyLight.position.set(5, 4, 5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 1024;
+keyLight.shadow.mapSize.height = 1024;
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far = 30;
+keyLight.shadow.camera.left = -5;
+keyLight.shadow.camera.right = 5;
+keyLight.shadow.camera.top = 5;
+keyLight.shadow.camera.bottom = -5;
+keyLight.shadow.bias = -0.0001;
+keyLight.shadow.normalBias = 0.02;
+scene.add(keyLight);
+
+// Rim light (back/side)
+const rimLight = new THREE.DirectionalLight(0x8888cc, 2.5);
+rimLight.position.set(-3, 1, -3);
+scene.add(rimLight);
+
+// Fill light (soft)
+const fillLight = new THREE.DirectionalLight(0x444466, 1.5);
+fillLight.position.set(-1, 2, 2);
+scene.add(fillLight);
+
+// Ambient
+const ambient = new THREE.AmbientLight(0x222233, 1);
+scene.add(ambient);
+
+// Subtle top accent
+const topLight = new THREE.PointLight(0xffffff, 8, 6);
+topLight.position.set(0, 3, 0);
+scene.add(topLight);
+
+/** ─── Ground (subtle reflective surface) ─── */
+const groundGeo = new THREE.PlaneGeometry(20, 20);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: 0x0a0a0a,
+  roughness: 0.5,
+  metalness: 0.3,
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -3;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/** ─── Build Sputnik-1 Model ─── */
+const sputnikGroup = new THREE.Group();
+
+// ─── Main sphere (outer shell) ───
+const shellGeo = new THREE.SphereGeometry(0.58, 80, 80);
+const shellMat = new THREE.MeshStandardMaterial({
+  color: 0xddddd8,
+  roughness: 0.18,
+  metalness: 0.95,
+});
+const shell = new THREE.Mesh(shellGeo, shellMat);
+shell.castShadow = true;
+shell.receiveShadow = true;
+sputnikGroup.add(shell);
+
+// ─── Inner seam ring (equatorial) ───
+const ringGeo = new THREE.TorusGeometry(0.58, 0.012, 32, 120);
+const ringMat = new THREE.MeshStandardMaterial({
+  color: 0x333333,
+  roughness: 0.4,
+  metalness: 0.7,
+});
+const ring = new THREE.Mesh(ringGeo, ringMat);
+ring.rotation.x = Math.PI / 2;
+ring.castShadow = true;
+sputnikGroup.add(ring);
+
+// ─── Panel lines (meridians) ───
+for (let i = 0; i < 3; i++) {
+  const angle = (i * Math.PI) / 3;
+  const meridianRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.58, 0.008, 16, 120),
+    ringMat
+  );
+  meridianRing.rotation.x = angle;
+  meridianRing.rotation.y = Math.PI / 2;
+  meridianRing.castShadow = true;
+  sputnikGroup.add(meridianRing);
+}
+
+// ─── Antenna mount (back ring base) ───
+const mountGeo = new THREE.TorusGeometry(0.2, 0.03, 16, 40);
+const mountMat = new THREE.MeshStandardMaterial({
+  color: 0x444444,
+  roughness: 0.3,
+  metalness: 0.9,
+});
+const mount = new THREE.Mesh(mountGeo, mountMat);
+mount.position.z = -0.58;
+mount.rotation.x = Math.PI / 2;
+mount.castShadow = true;
+sputnikGroup.add(mount);
+
+// ─── Antenna hub (central cone at back) ───
+const hubGeo = new THREE.ConeGeometry(0.08, 0.15, 16, 16);
+const hubMat = new THREE.MeshStandardMaterial({
+  color: 0x555555,
+  roughness: 0.3,
+  metalness: 0.9,
+});
+const hub = new THREE.Mesh(hubGeo, hubMat);
+hub.position.z = -0.72;
+hub.rotation.x = Math.PI;
+hub.castShadow = true;
+sputnikGroup.add(hub);
+
+// ─── Four whip antennas ───
+const antennaLengths = [2.4, 2.9, 2.4, 2.9];
+const antennaAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+
+antennaAngles.forEach((azimuth, idx) => {
+  const length = antennaLengths[idx];
+
+  // Whip antenna: segmented cone (tapered)
+  const segments = 20;
+  const antennaGroup = new THREE.Group();
+
+  for (let s = 0; s < segments; s++) {
+    const t = s / segments;
+    const tNext = (s + 1) / segments;
+    const r0 = 0.018 * (1 - t * 0.8);
+    const r1 = 0.018 * (1 - tNext * 0.8);
+    const y0 = t * length;
+    const y1 = tNext * length;
+
+    const segGeo = new THREE.CylinderGeometry(r1, r0, y1 - y0, 8, 1);
+    const seg = new THREE.Mesh(segGeo, hubMat);
+    seg.position.y = (y0 + y1) / 2;
+    seg.castShadow = true;
+    antennaGroup.add(seg);
+  }
+
+  // antenna tip (small ball)
+  const tipGeo = new THREE.SphereGeometry(0.005, 8, 8);
+  const tip = new THREE.Mesh(tipGeo, hubMat);
+  tip.position.y = length;
+  antennaGroup.add(tip);
+
+  // Position: hub location, rotated outward
+  antennaGroup.position.set(
+    Math.cos(azimuth) * 0.08,
+    Math.sin(azimuth) * 0.08,
+    -0.70
+  );
+
+  // Tilt antenna outward ~35 degrees from the central axis
+  const tiltAngle = Math.PI * 0.1; // slight outward flare
+  const pivotX = Math.cos(azimuth) * tiltAngle;
+  const pivotY = Math.sin(azimuth) * tiltAngle;
+
+  antennaGroup.rotation.set(pivotX, 0, pivotY);
+  antennaGroup.rotation.order = 'YXZ';
+
+  // Rotate around Z to fan out in correct azimuth
+  antennaGroup.rotation.z = azimuth;
+
+  sputnikGroup.add(antennaGroup);
+});
+
+// ─── Radio transmitter bulge (small bumps on shell) ───
+for (let i = 0; i < 4; i++) {
+  const phi = Math.PI * 0.35;
+  const theta = (i * Math.PI) / 2 + Math.PI / 4;
+  const bx = 0.58 * Math.sin(phi) * Math.cos(theta);
+  const by = 0.58 * Math.cos(phi);
+  const bz = 0.58 * Math.sin(phi) * Math.sin(theta);
+
+  const bumpGeo = new THREE.SphereGeometry(0.03, 8, 8);
+  const bump = new THREE.Mesh(bumpGeo, mountMat);
+  bump.position.set(bx, by, bz);
+  sputnikGroup.add(bump);
+}
+
+// Tilt the whole satellite so antennas point backward/upward
+sputnikGroup.rotation.x = Math.PI * 0.35;
+sputnikGroup.rotation.z = Math.PI * -0.08;
+
+scene.add(sputnikGroup);
+
+/** ─── Subtle background stars ─── */
+const starsGeo = new THREE.BufferGeometry();
+const starsCount = 300;
+const starsPositions = new Float32Array(starsCount * 3);
+for (let i = 0; i < starsCount; i++) {
+  starsPositions[i * 3] = (Math.random() - 0.5) * 20;
+  starsPositions[i * 3 + 1] = (Math.random() - 0.5) * 15;
+  starsPositions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+}
+starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+const starsMat = new THREE.PointsMaterial({
+  color: 0xffffff,
+  size: 0.015,
+  transparent: true,
+  opacity: 0.6,
+  depthWrite: false,
+});
+const stars = new THREE.Points(starsGeo, starsMat);
+scene.add(stars);
+
+/** ─── Animation Loop ─── */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  controls.update();
+
+  // subtle star drift
+  stars.rotation.y += delta * 0.02;
+  stars.rotation.x += delta * 0.005;
+
+  // subtle light pulse on keylight
+  const pulse = 1 + Math.sin(elapsed * 0.5) * 0.05;
+  keyLight.intensity = 4 * pulse;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+/** ─── Resize Handler ─── */
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+/** ─── Touch support: disable auto-rotate on interaction, resume after idle ─── */
+let idleTimer;
+const IDLE_DELAY = 3000;
+
+function resetAutoRotate() {
+  controls.autoRotate = false;
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    controls.autoRotate = true;
+  }, IDLE_DELAY);
+}
+
+renderer.domElement.addEventListener('pointerdown', resetAutoRotate);
+renderer.domElement.addEventListener('wheel', resetAutoRotate);
+</script>
+
+</body>
+</html>

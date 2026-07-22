@@ -1,0 +1,17 @@
+{
+  "name": "miniature-city",
+  "version": "1.0.0",
+  "private": true,
+  "description": "一座会呼吸的 3D 微缩城市",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "http-server dist -p 4180 -c-1 -o"
+  },
+  "dependencies": {
+    "three": "^0.178.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.5",
+    "http-server": "^14.1.1"
+  }
+}

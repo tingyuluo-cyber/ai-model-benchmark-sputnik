@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>斯普特尼克一号 · SPUTNIK 1</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-soft: #121214;
+    --ink: #f4f4f5;
+    --ink-dim: #a1a1aa;
+    --ink-faint: #6b6b70;
+    --line: rgba(255, 255, 255, 0.12);
+    --panel: rgba(20, 20, 22, 0.72);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #scene { position: fixed; inset: 0; z-index: 0; }
+
+  .masthead {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    padding: 28px 34px; display: flex; align-items: baseline; gap: 16px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(10,10,11,0.85) 0%, rgba(10,10,11,0) 100%);
+  }
+  .masthead .ru { font-size: 22px; letter-spacing: 0.18em; font-weight: 600; }
+  .masthead .en { font-size: 12px; letter-spacing: 0.42em; color: var(--ink-faint); text-transform: uppercase; }
+
+  .panel {
+    position: fixed; top: 50%; right: 30px; transform: translateY(-50%);
+    z-index: 10; width: 340px; max-width: calc(100vw - 60px); max-height: 78vh;
+    overflow-y: auto; background: var(--panel);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--line); border-radius: 16px; padding: 26px 26px 22px;
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .panel::-webkit-scrollbar { width: 6px; }
+  .panel::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .panel h2 { font-size: 13px; letter-spacing: 0.3em; color: var(--ink-dim); text-transform: uppercase; margin-bottom: 14px; font-weight: 500; }
+  .panel p.lead { font-size: 14px; line-height: 1.85; color: var(--ink); margin-bottom: 18px; }
+  .panel p.lead .hl { color: #fff; font-weight: 600; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 4px 0 18px; }
+  .stats .cell { background: var(--bg-soft); padding: 12px 14px; }
+  .stats .k { font-size: 11px; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 5px; }
+  .stats .v { font-size: 15px; color: var(--ink); font-weight: 500; }
+  .stats .v small { font-size: 11px; color: var(--ink-dim); font-weight: 400; }
+
+  .panel p.body { font-size: 13px; line-height: 1.9; color: var(--ink-dim); margin-bottom: 12px; }
+
+  .toggle {
+    position: fixed; right: 30px; bottom: 28px; z-index: 11;
+    width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); font-size: 18px; cursor: pointer;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: transform .2s ease, background .2s ease;
+  }
+  .toggle:hover { transform: scale(1.08); background: rgba(40,40,44,0.8); }
+
+  .panel.hidden { opacity: 0; transform: translateY(-50%) translateX(20px); pointer-events: none; }
+
+  .hint { position: fixed; bottom: 26px; left: 34px; z-index: 10; font-size: 12px; letter-spacing: 0.08em; color: var(--ink-faint); display: flex; gap: 18px; pointer-events: none; }
+  .hint span { display: inline-flex; align-items: center; gap: 6px; }
+  .hint b { color: var(--ink-dim); font-weight: 500; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-size: 11px; }
+
+  #loader {
+    position: fixed; inset: 0; z-index: 50; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 18px;
+    transition: opacity .6s ease;
+  }
+  #loader .ring { width: 38px; height: 38px; border: 2px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.9s linear infinite; }
+  #loader .txt { font-size: 12px; letter-spacing: 0.3em; color: var(--ink-faint); text-align: center; line-height: 1.8; }
+  #loader .txt .err { color: #ff8080; font-size: 11px; letter-spacing: 0.05em; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 720px) {
+    .panel { top: auto; bottom: 84px; right: 50%; transform: translateX(50%); width: calc(100vw - 36px); max-height: 46vh; }
+    .panel.hidden { transform: translateX(50%) translateY(20px); }
+    .masthead { padding: 20px; }
+    .hint { left: 20px; bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .toggle { right: 20px; bottom: 20px; }
+  }
+</style>
+</head>
+<body>
+  <div id="scene"></div>
+
+  <header class="masthead">
+    <span class="ru">斯普特尼克一号</span>
+    <span class="en">Sputnik&nbsp;1</span>
+  </header>
+
+  <aside class="panel" id="panel">
+    <h2>人类首颗人造卫星</h2>
+    <p class="lead">
+      1957 年 10 月 4 日，苏联将一颗<span class="hl">抛光金属球</span>送入轨道。
+      它只做了一件事——持续发出无线电"滴滴"声，却从此改写了人类文明的刻度：
+      <span class="hl">太空时代</span>就此开启。
+    </p>
+
+    <div class="stats">
+      <div class="cell"><div class="k">发射日期</div><div class="v">1957.10.04</div></div>
+      <div class="cell"><div class="k">质量</div><div class="v">83.6 <small>kg</small></div></div>
+      <div class="cell"><div class="k">直径</div><div class="v">58 <small>cm</small></div></div>
+      <div class="cell"><div class="k">轨道周期</div><div class="v">96.2 <small>min</small></div></div>
+      <div class="cell"><div class="k">近 / 远地点</div><div class="v">215 / 939 <small>km</small></div></div>
+      <div class="cell"><div class="k">工作时间</div><div class="v">21 <small>天</small></div></div>
+      <div class="cell"><div class="k">信号频率</div><div class="v">20 / 40 <small>MHz</small></div></div>
+      <div class="cell"><div class="k">运载火箭</div><div class="v">卫星号 8K71PS</div></div>
+    </div>
+
+    <p class="body">
+      卫星本体由两半铝合金壳体拼合，外表面抛光如镜，以更好反射阳光、稳定温度。
+      四根鞭状天线由球体伸出，长度约 2.4 与 2.9 米，向后呈放射状展开，
+      用于向全球无线电爱好者播送信标。
+    </p>
+    <p class="body">
+      电池耗尽后，它继续绕地球运行约三个月，于 1958 年 1 月坠入大气层烧毁。
+      那 83.6 公斤的金属球，成为了人类离开地球摇篮的第一步。
+    </p>
+  </aside>
+
+  <button class="toggle" id="toggle" title="显示/隐藏介绍">i</button>
+
+  <div class="hint">
+    <span><b>拖动</b> 旋转</span>
+    <span><b>滚轮</b> 缩放</span>
+    <span><b>双击</b> 复位</span>
+  </div>
+
+  <div id="loader">
+    <div class="ring"></div>
+    <div class="txt" id="loadtxt">LOADING</div>
+  </div>
+
+  <!-- 经典脚本：可直接 file:// 双击打开，不依赖本地服务器 -->
+  <script src="./libs/three.min.js"></script>
+  <script src="./libs/OrbitControls.js"></script>
+
+  <script>
+    (function () {
+      var loader = document.getElementById('loader');
+      var loadtxt = document.getElementById('loadtxt');
+
+      function fail(msg) {
+        if (loadtxt) {
+          loadtxt.innerHTML = '加载失败<br><span class="err">' + msg + '</span>';
+        }
+      }
+
+      try {
+        if (typeof THREE === 'undefined') { fail('Three.js 未加载，请确认 libs/three.min.js 存在'); return; }
+
+        var container = document.getElementById('scene');
+
+        var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+        container.appendChild(renderer.domElement);
+
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0b);
+
+        // 用画布渐变生成中性环境贴图（黑白基调下的金属反射）
+        var pmrem = new THREE.PMREMGenerator(renderer);
+        var cnv = document.createElement('canvas');
+        cnv.width = 4; cnv.height = 256;
+        var ctx = cnv.getContext('2d');
+        var grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0.0, '#45454a');
+        grad.addColorStop(0.5, '#0d0d0f');
+        grad.addColorStop(1.0, '#2c2c30');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 4, 256);
+        var envTex = new THREE.CanvasTexture(cnv);
+        envTex.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = pmrem.fromEquirectangular(envTex).texture;
+        envTex.dispose();
+
+        var camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.4, 6.2);
+
+        var controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.07;
+        controls.minDistance = 3.2;
+        controls.maxDistance = 12;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.8;
+        controls.target.set(0, 0, 0);
+
+        // 灯光
+        var key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(5, 6, 4); scene.add(key);
+        var rim = new THREE.DirectionalLight(0xffffff, 1.6); rim.position.set(-6, 2, -5); scene.add(rim);
+        var fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(0, -4, 3); scene.add(fill);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+
+        // ===== 卫星本体 =====
+        var sat = new THREE.Group();
+        scene.add(sat);
+
+        var bodyMat = new THREE.MeshStandardMaterial({ color: 0xd2d2d4, metalness: 1.0, roughness: 0.32 });
+        var body = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 96), bodyMat);
+        sat.add(body);
+
+        var seamMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2c, metalness: 0.6, roughness: 0.5 });
+        var seam = new THREE.Mesh(new THREE.TorusGeometry(1.001, 0.012, 16, 128), seamMat);
+        seam.rotation.x = Math.PI / 2; sat.add(seam);
+        for (var i = 0; i < 4; i++) {
+          var ring = new THREE.Mesh(new THREE.TorusGeometry(1.001, 0.006, 12, 128), seamMat);
+          ring.rotation.y = (i * Math.PI) / 4; sat.add(ring);
+        }
+
+        function makeAntenna(angleDeg) {
+          var g = new THREE.Group();
+          var theta = THREE.MathUtils.degToRad(112);
+          var phi = THREE.MathUtils.degToRad(angleDeg);
+          var start = new THREE.Vector3(
+            Math.sin(theta) * Math.cos(phi),
+            Math.cos(theta),
+            Math.sin(theta) * Math.sin(phi)
+          );
+          var dir = start.clone().normalize();
+
+          var baseMat = new THREE.MeshStandardMaterial({ color: 0x6f6f72, metalness: 0.9, roughness: 0.4 });
+          var base = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.18, 16), baseMat);
+          base.position.copy(start.clone().multiplyScalar(0.98));
+          base.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+          g.add(base);
+
+          var end = start.clone().add(dir.clone().multiplyScalar(3.4)); end.y -= 0.5;
+          var mid = start.clone().add(dir.clone().multiplyScalar(1.7)); mid.y -= 0.15;
+          var curve = new THREE.CatmullRomCurve3([start, mid, end]);
+          var antMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9d, metalness: 0.85, roughness: 0.45 });
+          var ant = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.018, 8, false), antMat);
+          g.add(ant);
+          return g;
+        }
+        [45, 135, 225, 315].forEach(function (a) { sat.add(makeAntenna(a)); });
+
+        sat.rotation.z = 0.18;
+
+        // 背景星点
+        var starGeo = new THREE.BufferGeometry();
+        var starCount = 900;
+        var pos = new Float32Array(starCount * 3);
+        for (var s = 0; s < starCount; s++) {
+          var r = 30 + Math.random() * 40;
+          var t = Math.random() * Math.PI * 2;
+          var p = Math.acos(2 * Math.random() - 1);
+          pos[s * 3] = r * Math.sin(p) * Math.cos(t);
+          pos[s * 3 + 1] = r * Math.sin(p) * Math.sin(t);
+          pos[s * 3 + 2] = r * Math.cos(p);
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        var starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, transparent: true, opacity: 0.35, sizeAttenuation: true });
+        var stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // 交互
+        var toggle = document.getElementById('toggle');
+        var panel = document.getElementById('panel');
+        toggle.addEventListener('click', function () { panel.classList.toggle('hidden'); });
+
+        var idleTimer = null;
+        function poke() {
+          controls.autoRotate = false;
+          if (idleTimer) clearTimeout(idleTimer);
+          idleTimer = setTimeout(function () { controls.autoRotate = true; }, 3000);
+        }
+        controls.addEventListener('start', poke);
+
+        renderer.domElement.addEventListener('dblclick', function () {
+          controls.reset();
+          camera.position.set(0, 1.4, 6.2);
+          controls.target.set(0, 0, 0);
+        });
+
+        window.addEventListener('resize', function () {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        (function animate() {
+          requestAnimationFrame(animate);
+          stars.rotation.y += 0.0004;
+          controls.update();
+          renderer.render(scene, camera);
+        })();
+
+        loader.style.opacity = '0';
+        setTimeout(function () { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 650);
+
+      } catch (e) {
+        fail((e && e.message) ? e.message : String(e));
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>

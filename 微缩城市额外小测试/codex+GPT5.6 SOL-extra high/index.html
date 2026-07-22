@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07100f" />
+  <title>栖光市 · 3D 微缩城市</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main id="app" aria-label="栖光市 3D 微缩景观">
+    <canvas id="city-canvas"></canvas>
+
+    <div class="ambient-grain" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><span></span><i></i></div>
+        <div>
+          <p class="eyebrow">QIGUANG · MINIATURE CITY</p>
+          <h1>栖光市</h1>
+        </div>
+      </div>
+      <div class="live-chip"><span></span> 城市实时运行中</div>
+    </header>
+
+    <section class="time-panel glass" aria-label="城市时间">
+      <div class="time-head">
+        <div>
+          <p id="period-label">晨间 · 通勤时段</p>
+          <strong id="city-time">07:30</strong>
+        </div>
+        <div id="weather-icon" class="weather-icon" aria-hidden="true">
+          <span class="sun-core"></span><span class="sun-ray"></span>
+        </div>
+      </div>
+      <div class="timeline-wrap">
+        <div class="timeline-labels"><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        <input id="time-slider" type="range" min="0" max="24" value="7.5" step="0.05" aria-label="调整城市时间" />
+      </div>
+      <div class="time-actions">
+        <button id="pause-btn" class="icon-btn" type="button" aria-label="暂停时间">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3v14H7zm7 0h3v14h-3z"/></svg>
+        </button>
+        <div class="speed-group" role="group" aria-label="时间流速">
+          <button class="speed-btn active" data-speed="1" type="button">×1</button>
+          <button class="speed-btn" data-speed="4" type="button">×4</button>
+          <button class="speed-btn" data-speed="12" type="button">×12</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="stats-panel glass" aria-label="城市运行数据">
+      <div class="section-kicker">CITY PULSE</div>
+      <h2>此刻，城市正在呼吸</h2>
+      <div class="stat-grid">
+        <div class="stat"><span>路网流量</span><strong id="traffic-stat">顺畅</strong><i class="ok"></i></div>
+        <div class="stat"><span>运行车辆</span><strong id="vehicle-stat">28</strong><small>辆</small></div>
+        <div class="stat"><span>清洁能源</span><strong id="energy-stat">83</strong><small>%</small></div>
+        <div class="stat"><span>公共空间</span><strong>14.6</strong><small>ha</small></div>
+      </div>
+      <div class="district-list">
+        <button type="button" data-focus="cbd"><span class="dot coral"></span>云际商务区<em>CBD</em></button>
+        <button type="button" data-focus="park"><span class="dot green"></span>栖湖生态带<em>ECO</em></button>
+        <button type="button" data-focus="home"><span class="dot yellow"></span>星港住区<em>LIVE</em></button>
+        <button type="button" data-focus="energy"><span class="dot blue"></span>东岸能源岛<em>GRID</em></button>
+      </div>
+    </aside>
+
+    <section class="controls glass" aria-label="视角操作说明">
+      <div class="control-icon orbit-icon"><span></span></div>
+      <div><strong>探索这座城市</strong><p>拖拽旋转 · 滚轮缩放 · 右键平移</p></div>
+      <button id="reset-view" type="button">复位视角</button>
+    </section>
+
+    <div class="scene-labels" aria-hidden="true">
+      <div class="scene-label" data-label="cbd"><span>01</span><b>云际商务区</b><i></i></div>
+      <div class="scene-label" data-label="park"><span>02</span><b>栖湖生态带</b><i></i></div>
+      <div class="scene-label" data-label="home"><span>03</span><b>星港住区</b><i></i></div>
+      <div class="scene-label" data-label="energy"><span>04</span><b>东岸能源岛</b><i></i></div>
+    </div>
+
+    <div id="loading-screen">
+      <div class="loader-mark"><span></span><i></i></div>
+      <p>正在唤醒城市</p>
+      <div class="loader-line"><span></span></div>
+      <button class="loader-retry" type="button" onclick="location.reload()">重新加载</button>
+    </div>
+  </main>
+  <script>
+    window.showCityLoadError = function (message) {
+      var loader = document.getElementById('loading-screen');
+      if (!loader) return;
+      loader.classList.add('failed');
+      loader.querySelector('p').textContent = message || '城市加载失败，请刷新重试';
+    };
+    window.setTimeout(function () {
+      if (!window.__cityStarted) window.showCityLoadError('加载超时，请使用 Chrome 或 Edge 重新打开');
+    }, 12000);
+  </script>
+  <script defer src="./city.js" onerror="window.showCityLoadError?.('主程序加载失败')"></script>
+</body>
+</html>

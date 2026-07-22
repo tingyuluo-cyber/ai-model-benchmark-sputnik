@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斯普特尼克一号 · SPUTNIK 1</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #050505;
+    --fg: #f5f5f5;
+    --muted: #8a8a8a;
+    --line: rgba(255,255,255,0.12);
+    --panel: rgba(12,12,12,0.72);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 3D 画布容器 */
+  #scene {
+    position: fixed; inset: 0;
+    z-index: 1;
+    cursor: grab;
+  }
+  #scene:active { cursor: grabbing; }
+
+  /* 顶部标题栏 */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 10;
+    padding: 28px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: none;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .brand .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 12px rgba(255,255,255,0.8);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+  .brand .title {
+    font-size: 13px; letter-spacing: 4px;
+    font-weight: 300; text-transform: uppercase;
+    color: var(--fg);
+  }
+  .meta {
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--muted);
+    font-family: "Courier New", monospace;
+  }
+
+  /* 左侧主标题 */
+  .hero {
+    position: fixed;
+    left: 48px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    pointer-events: none;
+    max-width: 360px;
+  }
+  .hero .num {
+    font-size: 11px; letter-spacing: 6px;
+    color: var(--muted);
+    margin-bottom: 18px;
+    font-family: "Courier New", monospace;
+  }
+  .hero h1 {
+    font-size: 64px;
+    font-weight: 100;
+    line-height: 1;
+    letter-spacing: -1px;
+    margin-bottom: 14px;
+  }
+  .hero h1 .em {
+    font-weight: 700;
+    display: block;
+  }
+  .hero .sub {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    margin-top: 14px;
+  }
+
+  /* 右侧信息面板 */
+  .panel {
+    position: fixed;
+    right: 48px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 320px;
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 26px 28px;
+    pointer-events: auto;
+  }
+  .panel h2 {
+    font-size: 11px; letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    font-weight: 400;
+  }
+  .panel .desc {
+    font-size: 13px;
+    line-height: 1.85;
+    color: #d8d8d8;
+    font-weight: 300;
+    margin-bottom: 22px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .stat .k {
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .stat .v {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--fg);
+    font-family: "Courier New", monospace;
+  }
+  .stat .v small {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 3px;
+  }
+
+  /* 底部控制提示 */
+  .controls {
+    position: fixed;
+    bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex; gap: 28px;
+    pointer-events: none;
+  }
+  .ctrl {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .ctrl .icon {
+    width: 22px; height: 22px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    color: var(--fg);
+  }
+
+  /* 加载提示 */
+  #loader {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.8s ease;
+  }
+  #loader.hide { opacity: 0; pointer-events: none; }
+  #loader .ring {
+    width: 40px; height: 40px;
+    border: 1px solid var(--line);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 响应式 */
+  @media (max-width: 900px) {
+    .topbar { padding: 18px 22px; }
+    .hero { left: 22px; max-width: 80%; }
+    .hero h1 { font-size: 42px; }
+    .panel {
+      right: 16px; left: 16px;
+      width: auto; top: auto; bottom: 70px;
+      transform: none;
+      padding: 18px 20px;
+    }
+    .panel .desc { font-size: 12px; margin-bottom: 14px; }
+    .stats { gap: 10px 12px; padding-top: 12px; }
+    .stat .v { font-size: 15px; }
+    .controls { bottom: 14px; gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="ring"></div></div>
+
+<div id="scene"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="dot"></div>
+    <div class="title">SPUTNIK · 1957</div>
+  </div>
+  <div class="meta">USSR / OKB-1</div>
+</div>
+
+<div class="hero">
+  <div class="num">No. 01 / 1957</div>
+  <h1>斯普特尼克<span class="em">一号</span></h1>
+  <div class="sub">The First Artificial Satellite</div>
+</div>
+
+<div class="panel">
+  <h2>关于这颗卫星</h2>
+  <div class="desc">
+    1957 年 10 月 4 日，斯普特尼克一号从拜科努尔发射升空，成为人类历史上第一颗进入近地轨道的人造卫星。它的成功标志着太空时代的开启，也掀起了美苏太空竞赛的序幕。
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="k">发射日期</div><div class="v">10.04<small>1957</small></div></div>
+    <div class="stat"><div class="k">在轨天数</div><div class="v">92<small>天</small></div></div>
+    <div class="stat"><div class="k">球体直径</div><div class="v">58<small>cm</small></div></div>
+    <div class="stat"><div class="k">总质量</div><div class="v">83.6<small>kg</small></div></div>
+    <div class="stat"><div class="k">绕地圈数</div><div class="v">1440</div></div>
+    <div class="stat"><div class="k">轨道高度</div><div class="v">215<small>km</small></div></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl"><div class="icon">↻</div>拖动旋转</div>
+  <div class="ctrl"><div class="icon">±</div>滚轮缩放</div>
+  <div class="ctrl"><div class="icon">⊙</div>右键平移</div>
+</div>
+
+<!-- Three.js importmap -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ===== 场景初始化 =====
+const container = document.getElementById('scene');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050505);
+scene.fog = new THREE.Fog(0x050505, 18, 40);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(5, 2.2, 6.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+// 环境贴图（给金属反射）
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+// ===== 灯光 =====
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+keyLight.position.set(6, 8, 4);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 1;
+keyLight.shadow.camera.far = 30;
+keyLight.shadow.bias = -0.0002;
+scene.add(keyLight);
+
+const rimLight = new THREE.DirectionalLight(0xcccccc, 1.0);
+rimLight.position.set(-5, 3, -4);
+scene.add(rimLight);
+
+const fillLight = new THREE.PointLight(0x666688, 0.6, 20);
+fillLight.position.set(-3, -2, 3);
+scene.add(fillLight);
+
+scene.add(new THREE.AmbientLight(0x222222, 0.5));
+
+// ===== 星空背景 =====
+function createStars() {
+  const count = 2000;
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const r = 60 + Math.random() * 40;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+    sizes[i] = Math.random() * 1.5 + 0.3;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+  const mat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.15,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false
+  });
+  const stars = new THREE.Points(geo, mat);
+  scene.add(stars);
+  return stars;
+}
+const stars = createStars();
+
+// ===== 斯普特尼克一号模型 =====
+const satellite = new THREE.Group();
+
+// --- 球体本体 (直径58cm，场景中放大) ---
+const sphereRadius = 1.15;
+const sphereGeo = new THREE.SphereGeometry(sphereRadius, 96, 96);
+
+// 程序生成金属磨砂质感的环境贴图效果
+const sphereMat = new THREE.MeshStandardMaterial({
+  color: 0xc8c8cc,
+  metalness: 1.0,
+  roughness: 0.28,
+  envMapIntensity: 1.3
+});
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+sphere.castShadow = true;
+sphere.receiveShadow = true;
+satellite.add(sphere);
+
+// --- 球体表面接缝（两个铝合金半球拼接）---
+const seamMat = new THREE.MeshStandardMaterial({
+  color: 0x4a4a4a,
+  metalness: 1.0,
+  roughness: 0.5
+});
+// 赤道接缝
+const seamGeo = new THREE.TorusGeometry(sphereRadius + 0.003, 0.012, 8, 128);
+const seam1 = new THREE.Mesh(seamGeo, seamMat);
+satellite.add(seam1);
+// 经线接缝
+const seam2 = new THREE.Mesh(seamGeo, seamMat);
+seam2.rotation.x = Math.PI / 2;
+satellite.add(seam2);
+
+// --- 表面铆钉/细节点 ---
+const rivetGeo = new THREE.SphereGeometry(0.025, 12, 12);
+const rivetMat = new THREE.MeshStandardMaterial({
+  color: 0x888888, metalness: 1.0, roughness: 0.4
+});
+for (let i = 0; i < 8; i++) {
+  const angle = (i / 8) * Math.PI * 2;
+  const rivet = new THREE.Mesh(rivetGeo, rivetMat);
+  const lat = Math.PI / 3; // 靠近顶部一圈
+  rivet.position.set(
+    sphereRadius * Math.sin(lat) * Math.cos(angle),
+    sphereRadius * Math.cos(lat),
+    sphereRadius * Math.sin(lat) * Math.sin(angle)
+  );
+  satellite.add(rivet);
+}
+for (let i = 0; i < 8; i++) {
+  const angle = (i / 8) * Math.PI * 2 + Math.PI/8;
+  const rivet = new THREE.Mesh(rivetGeo, rivetMat);
+  const lat = Math.PI - Math.PI / 3; // 靠近底部一圈
+  rivet.position.set(
+    sphereRadius * Math.sin(lat) * Math.cos(angle),
+    sphereRadius * Math.cos(lat),
+    sphereRadius * Math.sin(lat) * Math.sin(angle)
+  );
+  satellite.add(rivet);
+}
+
+// --- 4 根天线 ---
+// 斯普特尼克1号有4根鞭状天线，长度2.4~2.9m，呈对称分布
+const antennaMat = new THREE.MeshStandardMaterial({
+  color: 0xb0b0b0,
+  metalness: 1.0,
+  roughness: 0.35
+});
+
+function createAntenna(length, tiltFromVertical, azimuth) {
+  const group = new THREE.Group();
+  // 天线根部连接座
+  const baseGeo = new THREE.CylinderGeometry(0.05, 0.07, 0.08, 16);
+  const base = new THREE.Mesh(baseGeo, antennaMat);
+  base.castShadow = true;
+  group.add(base);
+
+  // 天线主体（锥形，由粗到细）
+  const segs = 6;
+  let prevR = 0.04;
+  let y = 0.04;
+  const totalLen = length;
+  const segLen = totalLen / segs;
+  for (let i = 0; i < segs; i++) {
+    const nextR = prevR * 0.72;
+    const segGeo = new THREE.CylinderGeometry(nextR, prevR, segLen, 12);
+    const seg = new THREE.Mesh(segGeo, antennaMat);
+    seg.position.y = y + segLen / 2;
+    seg.castShadow = true;
+    group.add(seg);
+    y += segLen;
+    prevR = nextR;
+  }
+  // 天线尖端小球
+  const tipGeo = new THREE.SphereGeometry(prevR * 1.2, 12, 12);
+  const tip = new THREE.Mesh(tipGeo, antennaMat);
+  tip.position.y = y;
+  group.add(tip);
+
+  // 将天线放置到球体表面，并倾斜
+  // tiltFromVertical: 相对球体法线的倾斜角
+  // azimuth: 水平方位角
+  const lat = Math.PI / 2 - tiltFromVertical; // 转换为纬度
+  // 天线根部位置
+  const rootR = sphereRadius;
+  const px = rootR * Math.sin(tiltFromVertical) * Math.cos(azimuth);
+  const py = rootR * Math.cos(tiltFromVertical);
+  const pz = rootR * Math.sin(tiltFromVertical) * Math.sin(azimuth);
+
+  // 移动天线组到根部，并让 +Y 方向沿球面外法线
+  group.position.set(px, py, pz);
+
+  // 计算 +Y 对齐到法线方向 (px,py,pz)/|..|
+  const normal = new THREE.Vector3(px, py, pz).normalize();
+  const up = new THREE.Vector3(0, 1, 0);
+  const quat = new THREE.Quaternion().setFromUnitVectors(up, normal);
+  group.quaternion.copy(quat);
+
+  return group;
+}
+
+// 4根天线：2长2短，对称分布在天球上方
+// 实际斯普特尼克天线长约2.4-2.9m，按比例放大
+const antLen = 4.6;
+const tilt = Math.PI / 3.2; // 约56度，向外倾斜
+
+satellite.add(createAntenna(antLen,      tilt, 0));
+satellite.add(createAntenna(antLen,      tilt, Math.PI));
+satellite.add(createAntenna(antLen * 0.9, tilt, Math.PI / 2));
+satellite.add(createAntenna(antLen * 0.9, tilt, -Math.PI / 2));
+
+// 整体微调朝向，让天线呈优美的散射状
+satellite.rotation.z = 0.15;
+scene.add(satellite);
+
+// ===== 地面阴影承接面（不可见，仅接收阴影）=====
+const shadowPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 40),
+  new THREE.ShadowMaterial({ opacity: 0.35 })
+);
+shadowPlane.rotation.x = -Math.PI / 2;
+shadowPlane.position.y = -3.2;
+shadowPlane.receiveShadow = true;
+scene.add(shadowPlane);
+
+// ===== 控制器 =====
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.rotateSpeed = 0.8;
+controls.zoomSpeed = 0.8;
+controls.minDistance = 3.5;
+controls.maxDistance = 18;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.6;
+controls.target.set(0, 0, 0);
+
+// 用户交互时暂停自动旋转
+let autoRotateTimer = null;
+controls.addEventListener('start', () => {
+  controls.autoRotate = false;
+  if (autoRotateTimer) clearTimeout(autoRotateTimer);
+});
+controls.addEventListener('end', () => {
+  if (autoRotateTimer) clearTimeout(autoRotateTimer);
+  autoRotateTimer = setTimeout(() => { controls.autoRotate = true; }, 3500);
+});
+
+// ===== 响应窗口 =====
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ===== 渲染循环 =====
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  // 星空缓慢自转
+  stars.rotation.y += 0.00015;
+  stars.rotation.x += 0.00007;
+  renderer.render(scene, camera);
+}
+animate();
+
+// 隐藏加载层
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hide');
+  }, 300);
+});
+// 兜底
+setTimeout(() => {
+  document.getElementById('loader').classList.add('hide');
+}, 1500);
+</script>
+</body>
+</html>

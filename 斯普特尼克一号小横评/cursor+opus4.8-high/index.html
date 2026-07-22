@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Спутник-1 · 斯普特尼克一号</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;600&family=Space+Mono&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #050505;
+    --bg-soft: #0d0d0f;
+    --ink: #f4f4f2;
+    --ink-dim: #9a9a98;
+    --line: rgba(255, 255, 255, 0.12);
+    --accent: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Serif SC", serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: #fff; color: #000; }
+
+  /* ---------- Grain / noise overlay ---------- */
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 40;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 40px;
+    mix-blend-mode: difference;
+  }
+  nav .brand {
+    font-family: "Oswald", sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    font-size: 15px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  nav .meta {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: #fff;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ---------- Hero / 3D stage ---------- */
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #scene {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    cursor: grab;
+  }
+  #scene:active { cursor: grabbing; }
+
+  .hero-type {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    text-align: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+  }
+  .hero-type .cyr {
+    font-family: "Oswald", sans-serif;
+    font-weight: 300;
+    font-size: clamp(60px, 16vw, 240px);
+    letter-spacing: 0.02em;
+    line-height: 0.85;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.25);
+    text-transform: uppercase;
+  }
+  .hero-type .zh {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 300;
+    letter-spacing: 0.5em;
+    font-size: clamp(14px, 2vw, 22px);
+    color: var(--ink-dim);
+    margin-top: 26px;
+    padding-left: 0.5em;
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation: bob 2.4s ease-in-out infinite;
+  }
+  .scroll-cue .bar {
+    width: 1px; height: 44px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.6), transparent);
+  }
+  @keyframes bob { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(8px)} }
+
+  .drag-hint {
+    position: absolute;
+    z-index: 3;
+    right: 40px;
+    bottom: 40px;
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .drag-hint .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #fff;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+  /* ---------- Sections ---------- */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 40px; }
+
+  section { position: relative; z-index: 5; }
+
+  .intro {
+    padding: 140px 0 90px;
+    border-top: 1px solid var(--line);
+    background: linear-gradient(to bottom, var(--bg), var(--bg-soft));
+  }
+  .kicker {
+    font-family: "Space Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 34px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .kicker::before { content:""; width: 46px; height: 1px; background: var(--ink-dim); }
+
+  .lede {
+    font-size: clamp(22px, 3.4vw, 40px);
+    font-weight: 300;
+    line-height: 1.5;
+    max-width: 20em;
+    letter-spacing: 0.01em;
+  }
+  .lede em { font-style: normal; color: var(--ink); border-bottom: 1px solid var(--line); }
+  .lede .fade { color: var(--ink-dim); }
+
+  /* ---------- Specs grid ---------- */
+  .specs {
+    padding: 80px 0 40px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .spec {
+    background: var(--bg);
+    padding: 34px 26px;
+    transition: background .4s ease;
+  }
+  .spec:hover { background: var(--bg-soft); }
+  .spec .num {
+    font-family: "Oswald", sans-serif;
+    font-weight: 300;
+    font-size: 46px;
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+  .spec .num small { font-size: 18px; color: var(--ink-dim); margin-left: 4px; }
+  .spec .lbl {
+    margin-top: 14px;
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .specs-outer { padding: 30px 0 110px; }
+
+  /* ---------- Story columns ---------- */
+  .story { padding: 30px 0 120px; border-top: 1px solid var(--line); }
+  .story-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    margin-top: 60px;
+  }
+  .story h3 {
+    font-family: "Oswald", sans-serif;
+    font-weight: 400;
+    font-size: 20px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  .story h3 .idx { font-family:"Space Mono",monospace; font-size: 12px; color: var(--ink-dim); }
+  .story p {
+    font-weight: 300;
+    line-height: 1.9;
+    color: #c9c9c7;
+    font-size: 16px;
+  }
+  .story p + p { margin-top: 18px; }
+
+  /* ---------- Timeline ---------- */
+  .timeline { padding: 100px 0 130px; border-top: 1px solid var(--line); }
+  .tl-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 40px;
+    padding: 34px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+    transition: padding-left .35s ease;
+  }
+  .tl-row:hover { padding-left: 14px; }
+  .tl-row .date {
+    font-family: "Oswald", sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+  .tl-row .evt h4 {
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: 0.03em;
+    margin-bottom: 8px;
+  }
+  .tl-row .evt p { color: var(--ink-dim); font-weight: 300; line-height: 1.7; font-size: 15px; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 60px 0 80px;
+    position: relative; z-index: 5;
+    background: var(--bg-soft);
+  }
+  .foot-grid { display:flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 30px;}
+  .foot-grid .big {
+    font-family: "Oswald", sans-serif;
+    font-weight: 300;
+    font-size: clamp(30px, 6vw, 74px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 0.9;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+  }
+  .foot-meta { font-family:"Space Mono",monospace; font-size: 11px; letter-spacing:0.16em; color: var(--ink-dim); line-height: 2; text-align: right; }
+
+  .section-title {
+    font-family: "Oswald", sans-serif;
+    font-weight: 300;
+    font-size: clamp(30px, 5vw, 58px);
+    letter-spacing: 0.03em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 820px) {
+    nav { padding: 18px 22px; }
+    .wrap { padding: 0 22px; }
+    .specs { grid-template-columns: repeat(2, 1fr); }
+    .story-grid { grid-template-columns: 1fr; gap: 44px; }
+    .tl-row { grid-template-columns: 90px 1fr; gap: 20px; }
+    .drag-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="grain"></div>
+
+  <nav>
+    <div class="brand">Sputnik&nbsp;·&nbsp;I</div>
+    <div class="meta">
+      ПС-1 / PS-1<br />
+      LEO · 1957
+    </div>
+  </nav>
+
+  <!-- ===== HERO 3D STAGE ===== -->
+  <div class="stage">
+    <div id="scene"></div>
+    <div class="hero-type">
+      <div class="cyr">Спутник</div>
+      <div class="zh">斯 普 特 尼 克 一 号</div>
+    </div>
+    <div class="drag-hint"><span class="dot"></span>拖动旋转 · 滚轮缩放</div>
+    <div class="scroll-cue"><span>Scroll</span><span class="bar"></span></div>
+  </div>
+
+  <!-- ===== INTRO ===== -->
+  <section class="intro">
+    <div class="wrap">
+      <div class="kicker">1957.10.04 · 人类的第一颗人造卫星</div>
+      <p class="lede">
+        一颗直径<em>58 厘米</em>的抛光铝合金球体，<br />
+        带着四根细长的天线，<span class="fade">在寂静的太空中划出第一道属于人类的轨迹，</span>
+        并向整个地球发出了那声著名的 <em>“哔——哔——”</em>。
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== SPECS ===== -->
+  <section class="wrap specs-outer">
+    <div class="specs">
+      <div class="spec"><div class="num">58<small>cm</small></div><div class="lbl">球体直径 Diameter</div></div>
+      <div class="spec"><div class="num">83.6<small>kg</small></div><div class="lbl">总质量 Mass</div></div>
+      <div class="spec"><div class="num">96.2<small>min</small></div><div class="lbl">绕地周期 Orbit</div></div>
+      <div class="spec"><div class="num">28<small>k km/h</small></div><div class="lbl">轨道速度 Velocity</div></div>
+    </div>
+  </section>
+
+  <!-- ===== STORY ===== -->
+  <section class="story">
+    <div class="wrap">
+      <h2 class="section-title">一颗球体<br />改变了世界</h2>
+      <div class="story-grid">
+        <div>
+          <h3><span class="idx">01</span> 构造</h3>
+          <p>斯普特尼克一号由两个抛光的铝镁钛合金半球对接密封而成，内部充入约 1.3 个大气压的氮气以维持恒温环境。球体外挂载了四根后掠式鞭状天线，长度分别约为 2.4 米与 2.9 米，用以向各个方向均匀发射无线电信号。</p>
+          <p>球体内部装有三组银锌化学电池，占据了大部分重量，为两台无线电发射机供电，工作频率为 20.005 与 40.002 兆赫。</p>
+        </div>
+        <div>
+          <h3><span class="idx">02</span> 意义</h3>
+          <p>1957 年 10 月 4 日，它由 R-7 火箭从拜科努尔发射场送入近地轨道，成为人类历史上第一个进入太空的人造物体，正式拉开了太空时代的序幕。</p>
+          <p>它持续广播了 21 天，直至电池耗尽，并在轨道上运行约三个月后坠入大气层烧毁。这声来自太空的“哔哔”声，点燃了此后延续数十年的太空竞赛。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TIMELINE ===== -->
+  <section class="timeline">
+    <div class="wrap">
+      <div class="kicker">飞行日志 · Mission Log</div>
+      <div class="tl-row">
+        <div class="date">1957.10.04</div>
+        <div class="evt"><h4>发射升空</h4><p>由 R-7 洲际弹道导弹改装的运载火箭从拜科努尔发射场点火升空，成功入轨。</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="date">1957.10.04</div>
+        <div class="evt"><h4>首次信号</h4><p>入轨后不久，全球的无线电爱好者便接收到了它稳定而清晰的脉冲信号。</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="date">1957.10.26</div>
+        <div class="evt"><h4>信号沉默</h4><p>在轨工作 21 天后，机载化学电池耗尽，发射机停止工作，卫星归于寂静。</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="date">1958.01.04</div>
+        <div class="evt"><h4>再入大气</h4><p>在完成约 1440 圈绕地飞行后，卫星再入大气层并被烧毁，结束了它的传奇之旅。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="wrap foot-grid">
+      <div class="big">Начало<br />космической эры</div>
+      <div class="foot-meta">
+        THE DAWN OF THE SPACE AGE<br />
+        PROSTEYSHIY SPUTNIK-1<br />
+        1957 — ∞
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== THREE.JS ===== -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const mount = document.getElementById('scene');
+
+    // ----- Renderer -----
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    mount.appendChild(renderer.domElement);
+
+    // ----- Scene & Camera -----
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, mount.clientWidth / mount.clientHeight, 0.1, 100);
+    camera.position.set(0, 0.4, 4.2);
+
+    // ----- Environment (for metallic reflections) -----
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    // ----- Lighting (dramatic black & white) -----
+    const key = new THREE.DirectionalLight(0xffffff, 3.2);
+    key.position.set(5, 6, 5);
+    scene.add(key);
+
+    const rim = new THREE.DirectionalLight(0xffffff, 2.4);
+    rim.position.set(-6, -2, -4);
+    scene.add(rim);
+
+    const fill = new THREE.DirectionalLight(0xbfc4cc, 0.8);
+    fill.position.set(-3, 4, 3);
+    scene.add(fill);
+
+    scene.add(new THREE.AmbientLight(0x404040, 0.6));
+
+    // ----- Sputnik model group -----
+    const sputnik = new THREE.Group();
+    scene.add(sputnik);
+
+    // Main polished sphere (2 hemispheres feel via material)
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0xd6d8dc,
+      metalness: 1.0,
+      roughness: 0.18,
+      envMapIntensity: 1.3
+    });
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 96), bodyMat);
+    sputnik.add(sphere);
+
+    // Equatorial seam band where the two hemispheres join
+    const bandMat = new THREE.MeshStandardMaterial({
+      color: 0x8a8d92, metalness: 1.0, roughness: 0.35, envMapIntensity: 1.0
+    });
+    const band = new THREE.Mesh(new THREE.TorusGeometry(1.001, 0.03, 24, 120), bandMat);
+    band.rotation.x = Math.PI / 2;
+    sputnik.add(band);
+
+    // Small filler valve / port details on the shell
+    const portMat = new THREE.MeshStandardMaterial({ color: 0x5a5d61, metalness: 1, roughness: 0.4 });
+    function addPort(theta, phi, r = 0.07) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.05, 20), portMat);
+      const v = new THREE.Vector3().setFromSphericalCoords(1.0, phi, theta);
+      p.position.copy(v);
+      p.lookAt(v.clone().multiplyScalar(2));
+      sputnik.add(p);
+    }
+    addPort(0.6, 1.2);
+    addPort(2.3, 1.5);
+    addPort(-1.4, 1.1);
+
+    // ----- Antennas: 4 swept-back whip antennas from one hemisphere -----
+    const antMat = new THREE.MeshStandardMaterial({
+      color: 0xc4c7cc, metalness: 1.0, roughness: 0.28, envMapIntensity: 1.1
+    });
+
+    function makeAntenna(len, angleAround) {
+      const g = new THREE.Group();
+
+      // base mount cone on the shell
+      const base = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.18, 20), antMat);
+      base.position.y = 1.0;
+      g.add(base);
+
+      // thin tapered rod
+      const rod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.028, len, 16),
+        antMat
+      );
+      rod.position.y = 1.0 + len / 2;
+      g.add(rod);
+
+      // small tip cap
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 12), antMat);
+      tip.position.y = 1.0 + len;
+      g.add(tip);
+
+      // sweep the antenna back (away from "top") and rotate around axis
+      g.rotation.z = THREE.MathUtils.degToRad(38);
+      const holder = new THREE.Group();
+      holder.add(g);
+      holder.rotation.y = angleAround;
+      return holder;
+    }
+
+    // two long (~2.9m) + two short (~2.4m) antennas, evenly spaced
+    sputnik.add(makeAntenna(2.7, 0));
+    sputnik.add(makeAntenna(2.7, Math.PI));
+    sputnik.add(makeAntenna(2.25, Math.PI / 2));
+    sputnik.add(makeAntenna(2.25, -Math.PI / 2));
+
+    // orient the antennas cluster to point down-ish for classic silhouette
+    sputnik.rotation.x = Math.PI;
+    sputnik.rotation.z = 0.15;
+
+    // ----- Starfield backdrop (subtle, monochrome) -----
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 900;
+    const pos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const rr = 30 + Math.random() * 40;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      pos[i*3]   = rr * Math.sin(ph) * Math.cos(th);
+      pos[i*3+1] = rr * Math.sin(ph) * Math.sin(th);
+      pos[i*3+2] = rr * Math.cos(ph);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+      color: 0xffffff, size: 0.08, sizeAttenuation: true, transparent: true, opacity: 0.55
+    }));
+    scene.add(stars);
+
+    // ----- Controls: free drag rotate + zoom -----
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.rotateSpeed = 0.9;
+    controls.enablePan = false;
+    controls.minDistance = 2.6;
+    controls.maxDistance = 8;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.8;
+
+    // stop auto-rotate once the user interacts
+    controls.addEventListener('start', () => { controls.autoRotate = false; });
+
+    // ----- Resize -----
+    function resize() {
+      const w = mount.clientWidth, h = mount.clientHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+
+    // ----- Animate -----
+    function animate() {
+      requestAnimationFrame(animate);
+      stars.rotation.y += 0.0004;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

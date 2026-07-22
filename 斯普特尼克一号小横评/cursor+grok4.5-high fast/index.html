@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>斯普特尼克一号 · Sputnik 1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Syne:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="orbits" aria-hidden="true">
+    <span class="orbit orbit-a"></span>
+    <span class="orbit orbit-b"></span>
+    <span class="orbit orbit-c"></span>
+  </div>
+
+  <header class="topbar">
+    <p class="mark">SPUTNIK · 1957</p>
+    <nav>
+      <a href="#about">关于</a>
+      <a href="#specs">参数</a>
+      <a href="#legacy">遗产</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">人类第一颗人造地球卫星</p>
+        <h1>斯普特尼克<span>一号</span></h1>
+        <p class="lede">
+          1957 年 10 月 4 日，一颗抛光铝球带着四根长天线升空，
+          用简短的哔哔声宣告太空时代的开始。
+        </p>
+        <div class="cta-row">
+          <a class="cta" href="#about">了解更多</a>
+          <p class="hint">拖动旋转 · 滚轮缩放</p>
+        </div>
+      </div>
+      <div class="stage" id="stage" aria-label="可交互的斯普特尼克一号三维模型"></div>
+    </section>
+
+    <section class="about" id="about">
+      <div class="section-head">
+        <h2>关于这颗卫星</h2>
+        <p>苏联发射的第一颗人造卫星，拉开了太空竞赛的序幕。</p>
+      </div>
+      <div class="about-grid">
+        <article>
+          <h3>使命</h3>
+          <p>
+            「斯普特尼克」在俄语中意为「旅伴」。它的任务并非复杂探测，
+            而是证明人类可以把人造物体送入地球轨道，并让全世界听见它的信号。
+          </p>
+        </article>
+        <article>
+          <h3>信号</h3>
+          <p>
+            卫星以 20.005 MHz 与 40.002 MHz 交替发出哔哔声，
+            业余无线电爱好者与专业监听站都能接收到这串来自轨道的心跳。
+          </p>
+        </article>
+        <article>
+          <h3>造型</h3>
+          <p>
+            直径约 58 厘米的抛光铝球，搭配两对长度约 2.4 米与 2.9 米的天线，
+            成为二十世纪最具辨识度的航天器物之一。
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="specs" id="specs">
+      <div class="section-head">
+        <h2>关键参数</h2>
+        <p>一颗小而锋利的历史节点。</p>
+      </div>
+      <dl class="spec-list">
+        <div>
+          <dt>发射日期</dt>
+          <dd>1957 年 10 月 4 日</dd>
+        </div>
+        <div>
+          <dt>发射地点</dt>
+          <dd>拜科努尔航天发射场</dd>
+        </div>
+        <div>
+          <dt>质量</dt>
+          <dd>83.6 kg</dd>
+        </div>
+        <div>
+          <dt>直径</dt>
+          <dd>58 cm</dd>
+        </div>
+        <div>
+          <dt>轨道周期</dt>
+          <dd>约 96.2 分钟</dd>
+        </div>
+        <div>
+          <dt>近地点 / 远地点</dt>
+          <dd>215 km / 939 km</dd>
+        </div>
+        <div>
+          <dt>工作寿命</dt>
+          <dd>约 22 天（电池耗尽）</dd>
+        </div>
+        <div>
+          <dt>再入大气</dt>
+          <dd>1958 年 1 月 4 日</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="legacy" id="legacy">
+      <div class="legacy-panel">
+        <h2>它改变了什么</h2>
+        <p>
+          斯普特尼克一号不只是一件航天器，它重新定义了大国科技竞赛的节奏，
+          催生了美国 NASA 的成立，并让「轨道」「卫星」「太空」成为日常语言。
+          从那天起，天空不再只是仰望的对象，而成为可以抵达的疆域。
+        </p>
+        <blockquote>
+          「哔——哔——哔——」
+          <cite>—— 1957，第一声来自轨道的回响</cite>
+        </blockquote>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>斯普特尼克一号 · Sputnik 1</p>
+    <a href="#top">回到顶部</a>
+  </footer>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="sputnik.js"></script>
+</body>
+</html>

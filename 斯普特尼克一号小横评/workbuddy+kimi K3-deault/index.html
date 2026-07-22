@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斯普特尼克一号 · Sputnik 1</title>
+<style>
+  :root {
+    --ink: #111;
+    --paper: #fff;
+    --gray: #888;
+    --line: #e5e5e5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #scene { position: fixed; inset: 0; cursor: grab; }
+  #scene:active { cursor: grabbing; }
+
+  /* ===== 左上：标题 ===== */
+  .brand {
+    position: fixed; top: 40px; left: 44px; z-index: 10;
+    user-select: none; pointer-events: none;
+  }
+  .brand .no {
+    font-size: 12px; letter-spacing: .35em; color: var(--gray);
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .brand h1 {
+    font-size: clamp(30px, 4.2vw, 52px);
+    font-weight: 800; letter-spacing: .04em; line-height: 1.05;
+  }
+  .brand .sub {
+    margin-top: 10px; font-size: 14px; letter-spacing: .18em;
+    color: var(--gray); text-transform: uppercase;
+  }
+  .brand .rule { width: 56px; height: 2px; background: var(--ink); margin-top: 18px; }
+
+  /* ===== 右上：操作提示 ===== */
+  .hint {
+    position: fixed; top: 44px; right: 44px; z-index: 10;
+    font-size: 12px; color: var(--gray); letter-spacing: .12em;
+    text-align: right; line-height: 2; user-select: none; pointer-events: none;
+  }
+  .hint b { color: var(--ink); font-weight: 600; }
+
+  /* ===== 左下：参数 ===== */
+  .specs {
+    position: fixed; left: 44px; bottom: 40px; z-index: 10;
+    user-select: none; pointer-events: none;
+  }
+  .specs .row {
+    display: flex; align-items: baseline; gap: 18px;
+    padding: 7px 0; border-bottom: 1px solid var(--line);
+    min-width: 240px;
+  }
+  .specs .row:last-child { border-bottom: none; }
+  .specs .k { font-size: 11px; letter-spacing: .25em; color: var(--gray); width: 72px; flex-shrink: 0; }
+  .specs .v { font-size: 15px; font-weight: 600; letter-spacing: .04em; }
+
+  /* ===== 右下：控制按钮 ===== */
+  .ctrl {
+    position: fixed; right: 44px; bottom: 40px; z-index: 10;
+    display: flex; gap: 10px;
+  }
+  .ctrl button {
+    font-family: inherit; font-size: 12px; letter-spacing: .15em;
+    padding: 10px 18px; border: 1px solid var(--ink);
+    background: transparent; color: var(--ink); cursor: pointer;
+    transition: background .25s, color .25s;
+  }
+  .ctrl button:hover { background: var(--ink); color: var(--paper); }
+  .ctrl button.on { background: var(--ink); color: var(--paper); }
+
+  /* ===== 底部居中：装饰刻度 ===== */
+  .foot {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    z-index: 10; font-size: 10px; letter-spacing: .5em; color: #bbb;
+    user-select: none; pointer-events: none; white-space: nowrap;
+  }
+
+  /* ===== 介绍按钮 & 弹层 ===== */
+  .about-btn {
+    position: fixed; top: 40px; right: 200px; z-index: 10;
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--ink); background: transparent;
+    font-size: 18px; font-weight: 600; color: var(--ink);
+    cursor: pointer; transition: background .25s, color .25s;
+    font-family: Georgia, serif;
+  }
+  .about-btn:hover { background: var(--ink); color: var(--paper); }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(255,255,255,.97);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .35s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .panel {
+    max-width: 660px; max-height: 82vh; overflow-y: auto;
+    padding: 56px 60px; position: relative;
+  }
+  .panel .close {
+    position: absolute; top: 18px; right: 22px;
+    border: none; background: none; font-size: 26px; cursor: pointer;
+    color: var(--gray); line-height: 1;
+  }
+  .panel .close:hover { color: var(--ink); }
+  .panel h2 { font-size: 30px; font-weight: 800; letter-spacing: .05em; }
+  .panel .en {
+    font-size: 13px; letter-spacing: .3em; color: var(--gray);
+    text-transform: uppercase; margin: 8px 0 26px;
+  }
+  .panel p {
+    font-size: 15px; line-height: 2.05; color: #333;
+    margin-bottom: 18px; text-align: justify;
+  }
+  .panel .facts {
+    margin-top: 28px; border-top: 2px solid var(--ink); padding-top: 6px;
+  }
+  .panel .facts .row {
+    display: flex; justify-content: space-between; gap: 20px;
+    padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px;
+  }
+  .panel .facts .row span:first-child { color: var(--gray); letter-spacing: .1em; flex-shrink: 0; }
+  .panel .facts .row span:last-child { font-weight: 600; text-align: right; }
+
+  .fallback {
+    position: fixed; inset: 0; display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; text-align: center; padding: 40px;
+  }
+
+  @media (max-width: 720px) {
+    .brand { top: 24px; left: 24px; }
+    .hint { display: none; }
+    .about-btn { top: 24px; right: 24px; }
+    .specs { left: 24px; bottom: 96px; }
+    .specs .row { min-width: 200px; }
+    .ctrl { right: 24px; bottom: 30px; }
+    .foot { display: none; }
+    .panel { padding: 44px 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div class="brand">
+  <div class="no">PS-1 · Простейший Спутник-1</div>
+  <h1>斯普特尼克一号</h1>
+  <div class="sub">SPUTNIK 1 — 1957</div>
+  <div class="rule"></div>
+</div>
+
+<div class="hint">
+  <b>拖动</b> 旋转 &nbsp;/&nbsp; <b>滚轮</b> 缩放<br>
+  人类第一颗人造地球卫星
+</div>
+
+<button class="about-btn" id="aboutBtn" title="关于这颗卫星">i</button>
+
+<div class="specs">
+  <div class="row"><span class="k">发射日期</span><span class="v">1957.10.04</span></div>
+  <div class="row"><span class="k">质　　量</span><span class="v">83.6 kg</span></div>
+  <div class="row"><span class="k">直　　径</span><span class="v">58 cm</span></div>
+  <div class="row"><span class="k">轨道周期</span><span class="v">96.2 min</span></div>
+  <div class="row"><span class="k">在轨时间</span><span class="v">92 天</span></div>
+</div>
+
+<div class="ctrl">
+  <button id="spinBtn" class="on">自动旋转</button>
+  <button id="resetBtn">复位视角</button>
+</div>
+
+<div class="foot">СПУТНИК · 旅 伴 · 1957 — 1958</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <button class="close" id="closeBtn">×</button>
+    <h2>斯普特尼克一号</h2>
+    <div class="en">Sputnik 1 · Спутник-1</div>
+    <p>1957年10月4日，苏联在拜科努尔航天发射场用 R-7 洲际导弹改装的运载火箭，将斯普特尼克一号送入近地轨道。它是人类历史上第一颗人造地球卫星——一颗直径58厘米、重83.6公斤的抛光铝合金球体，伸出四根鞭状天线，以20.005与40.002兆赫的频率向地球发出"嘀…嘀…"的无线电信号。</p>
+    <p>"斯普特尼克"在俄语中意为"旅伴"——地球的旅伴。这个简单的金属球没有相机、没有探测器，它唯一的任务就是宣告自己的存在。全世界的无线电爱好者都能收听到它的信号，人们在夜空中追逐它身后火箭残体的微光。</p>
+    <p>它在轨运行了92天，绕地球约1440圈，于1958年1月4日再入大气层烧毁。这颗小小的卫星点燃了美苏太空竞赛的导火索，直接促成了 NASA 的成立，也开启了人类的航天时代。此后每一年，10月4日都被视为太空时代的开端。</p>
+    <div class="facts">
+      <div class="row"><span>发射场</span><span>拜科努尔航天发射场</span></div>
+      <div class="row"><span>运载火箭</span><span>Sputnik 8K71PS（改自 R-7）</span></div>
+      <div class="row"><span>近地点 / 远地点</span><span>215 km / 939 km</span></div>
+      <div class="row"><span>轨道倾角</span><span>65.1°</span></div>
+      <div class="row"><span>信号频率</span><span>20.005 / 40.002 MHz</span></div>
+      <div class="row"><span>设计者</span><span>谢尔盖·科罗廖夫 团队</span></div>
+      <div class="row"><span>再入烧毁</span><span>1958.01.04</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="fallback" id="fallback">
+  <h2>无法初始化 3D 环境</h2>
+  <p>您的浏览器不支持 WebGL，或 3D 引擎加载失败。请使用最新版 Chrome / Edge / Safari 打开。</p>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+(function () {
+  if (typeof THREE === 'undefined') {
+    document.getElementById('fallback').style.display = 'flex';
+    return;
+  }
+
+  // ================= 渲染器 / 场景 / 相机 =================
+  const container = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+
+  const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+
+  // ================= 灯光（三点布光，黑白质感） =================
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.15);
+  keyLight.position.set(4, 5, 6);
+  scene.add(keyLight);
+
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  rimLight.position.set(-6, 3, -5);
+  scene.add(rimLight);
+
+  const fillLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.75);
+  scene.add(fillLight);
+
+  // ================= 斯普特尼克一号 实体建模 =================
+  const sputnik = new THREE.Group();
+  const R = 0.29; // 半径 0.29m → 直径 58cm（真实比例）
+
+  // --- 抛光铝合金球体：两个对扣的半球壳 ---
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0xdcdcdc, metalness: 0.92, roughness: 0.28
+  });
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 48), bodyMat);
+  sputnik.add(sphere);
+
+  // --- 赤道接缝（两半壳体的接合环） ---
+  const seam = new THREE.Mesh(
+    new THREE.TorusGeometry(R * 1.002, 0.006, 12, 128),
+    new THREE.MeshStandardMaterial({ color: 0x9a9a9a, metalness: 0.9, roughness: 0.35 })
+  );
+  seam.rotation.x = Math.PI / 2;
+  sputnik.add(seam);
+
+  // --- 接缝铆钉（36 颗，环带分布） ---
+  const rivetGeo = new THREE.SphereGeometry(0.0075, 10, 8);
+  const rivetMat = new THREE.MeshStandardMaterial({ color: 0x7d7d7d, metalness: 0.95, roughness: 0.3 });
+  const rivets = new THREE.InstancedMesh(rivetGeo, rivetMat, 36);
+  const m4 = new THREE.Matrix4();
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2;
+    m4.makeTranslation(Math.cos(a) * (R + 0.006), 0, Math.sin(a) * (R + 0.006));
+    rivets.setMatrixAt(i, m4);
+  }
+  sputnik.add(rivets);
+
+  // --- 极区法兰盖（上下各一，球体加工特征） ---
+  const capMat = new THREE.MeshStandardMaterial({ color: 0xc4c4c4, metalness: 0.9, roughness: 0.32 });
+  [1, -1].forEach(function (s) {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.058, 0.012, 32), capMat);
+    cap.position.y = s * R * 0.985;
+    sputnik.add(cap);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.02, 16),
+      new THREE.MeshStandardMaterial({ color: 0x8a8a8a, metalness: 0.95, roughness: 0.3 }));
+    hub.position.y = s * (R * 0.985 + 0.012);
+    sputnik.add(hub);
+  });
+
+  // --- 四根鞭状天线（2.4m / 2.9m，向后倾斜 35°，朝向后方半球展开） ---
+  const antMat = new THREE.MeshStandardMaterial({ color: 0xb9b9b9, metalness: 0.95, roughness: 0.25 });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x8f8f8f, metalness: 0.9, roughness: 0.4 });
+  const TILT = THREE.MathUtils.degToRad(35); // 相对球心后向轴的张角
+
+  function makeAntenna(len) {
+    const g = new THREE.Group();
+    // 根部基座
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.032, 0.035, 20), baseMat);
+    base.position.y = 0.012;
+    g.add(base);
+    // 鞭杆：根部稍粗，向尖端渐细
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.010, len, 12), antMat);
+    rod.position.y = len / 2 + 0.02;
+    g.add(rod);
+    // 顶端小球
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.009, 12, 10), antMat);
+    tip.position.y = len + 0.02;
+    g.add(tip);
+    return g;
+  }
+
+  // 天线安装点：球体后方（-Z 半球），四根绕轴均布
+  for (let i = 0; i < 4; i++) {
+    const phi = (i / 4) * Math.PI * 2 + Math.PI / 4; // 绕轴方位角，错开 45°
+    const len = (i % 2 === 0) ? 2.4 : 2.9;           // 长短交替
+    const holder = new THREE.Group();
+
+    // 天线轴线方向：后向轴绕 XZ 摆动 phi 后，再向外倾 TILT
+    const dir = new THREE.Vector3(Math.cos(phi), 0, Math.sin(phi));
+    const axis = new THREE.Vector3(0, 0, -1)          // 后向
+      .addScaledVector(dir, Math.tan(TILT))
+      .normalize();
+
+    // 让 +Y 对齐天线轴线
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);
+    holder.quaternion.copy(q);
+
+    // 安装点位于球面后方的天线轴线上
+    holder.position.copy(axis).multiplyScalar(R * 0.98);
+
+    holder.add(makeAntenna(len));
+    sputnik.add(holder);
+  }
+
+  scene.add(sputnik);
+
+  // --- 卫星整体姿态：微微侧倾，天线朝后下方，更有"飞行感" ---
+  sputnik.rotation.set(0.35, 0.6, -0.12);
+  const sputnikHome = { x: 0.35, y: 0.6, z: -0.12 };
+
+  // ================= 参考线元素（极简黑白装饰） =================
+  // 地面细网格
+  const grid = new THREE.GridHelper(12, 24, 0xdddddd, 0xefefef);
+  grid.position.y = -1.15;
+  scene.add(grid);
+
+  // 轨道环
+  const orbit = new THREE.Mesh(
+    new THREE.TorusGeometry(1.55, 0.0022, 8, 220),
+    new THREE.MeshBasicMaterial({ color: 0xc6c6c6 })
+  );
+  orbit.rotation.x = Math.PI / 2 + 0.18;
+  orbit.rotation.y = 0.1;
+  scene.add(orbit);
+
+  // 背景星点（低调灰色）
+  var starGeo = new THREE.BufferGeometry();
+  var starPos = [];
+  for (var i = 0; i < 420; i++) {
+    var r = 9 + Math.random() * 14;
+    var t = Math.random() * Math.PI * 2;
+    var p = Math.acos(2 * Math.random() - 1);
+    starPos.push(r * Math.sin(p) * Math.cos(t), r * Math.sin(p) * Math.sin(t), r * Math.cos(p));
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xcfcfcf, size: 0.035 }));
+  scene.add(stars);
+
+  // ================= 自定义轨道控制（拖拽旋转 + 惯性 + 缩放） =================
+  var spherical = { theta: 0.55, phi: 1.18, radius: 3.4 };
+  var target = { theta: spherical.theta, phi: spherical.phi, radius: spherical.radius };
+  var home = { theta: 0.55, phi: 1.18, radius: 3.4 };
+  var vel = { theta: 0, phi: 0 };
+  var dragging = false, px = 0, py = 0;
+  var autoSpin = true, userHolding = false;
+
+  function onDown(x, y) { dragging = true; userHolding = true; px = x; py = y; vel.theta = 0; vel.phi = 0; }
+  function onMove(x, y) {
+    if (!dragging) return;
+    var dx = x - px, dy = y - py;
+    px = x; py = y;
+    target.theta -= dx * 0.0052;
+    target.phi   -= dy * 0.0052;
+    target.phi = Math.max(0.12, Math.min(Math.PI - 0.12, target.phi));
+    vel.theta = -dx * 0.0052;
+    vel.phi   = -dy * 0.0052;
+  }
+  function onUp() { dragging = false; setTimeout(function () { userHolding = false; }, 1600); }
+
+  container.addEventListener('mousedown', function (e) { onDown(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', onUp);
+  container.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    target.radius += e.deltaY * 0.0016;
+    target.radius = Math.max(1.7, Math.min(7.5, target.radius));
+  }, { passive: false });
+
+  // 触屏
+  var lastDist = 0;
+  container.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 1) onDown(e.touches[0].clientX, e.touches[0].clientY);
+    if (e.touches.length === 2) {
+      lastDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY);
+    }
+  }, { passive: true });
+  container.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY);
+    if (e.touches.length === 2) {
+      var d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY);
+      target.radius -= (d - lastDist) * 0.006;
+      target.radius = Math.max(1.7, Math.min(7.5, target.radius));
+      lastDist = d;
+    }
+  }, { passive: true });
+  container.addEventListener('touchend', onUp);
+
+  // ================= 按钮 =================
+  var spinBtn = document.getElementById('spinBtn');
+  spinBtn.addEventListener('click', function () {
+    autoSpin = !autoSpin;
+    spinBtn.classList.toggle('on', autoSpin);
+  });
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    target.theta = home.theta; target.phi = home.phi; target.radius = home.radius;
+    vel.theta = 0; vel.phi = 0;
+  });
+
+  var overlay = document.getElementById('overlay');
+  document.getElementById('aboutBtn').addEventListener('click', function () { overlay.classList.add('show'); });
+  document.getElementById('closeBtn').addEventListener('click', function () { overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.classList.remove('show'); });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') overlay.classList.remove('show'); });
+
+  // ================= 自适应 =================
+  window.addEventListener('resize', function () {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ================= 动画循环 =================
+  var clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    var t = clock.getElapsedTime();
+
+    // 惯性
+    if (!dragging) {
+      target.theta += vel.theta;
+      target.phi += vel.phi;
+      vel.theta *= 0.94;
+      vel.phi *= 0.94;
+      target.phi = Math.max(0.12, Math.min(Math.PI - 0.12, target.phi));
+    }
+    // 自动旋转
+    if (autoSpin && !userHolding) target.theta += 0.0032;
+
+    // 平滑趋近
+    spherical.theta += (target.theta - spherical.theta) * 0.12;
+    spherical.phi   += (target.phi   - spherical.phi)   * 0.12;
+    spherical.radius += (target.radius - spherical.radius) * 0.1;
+
+    camera.position.set(
+      spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta),
+      spherical.radius * Math.cos(spherical.phi),
+      spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta)
+    );
+    camera.lookAt(0, 0.1, 0);
+
+    // 轻微浮动，模拟失重感
+    sputnik.position.y = Math.sin(t * 0.8) * 0.03;
+    sputnik.rotation.x = sputnikHome.x + Math.sin(t * 0.5) * 0.015;
+    sputnik.rotation.z = sputnikHome.z + Math.cos(t * 0.4) * 0.015;
+
+    stars.rotation.y = t * 0.004;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>斯普特尼克一号 · Sputnik 1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #888;
+      --accent: #fff;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans SC', 'Space Grotesk', sans-serif;
+      font-weight: 300;
+    }
+
+    .page {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Header */
+    header {
+      padding: 2rem 3rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .title-group h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 300;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .title-group .subtitle {
+      margin-top: 0.4rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .launch-date {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .launch-date span {
+      display: block;
+      font-size: 1.1rem;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      margin-top: 0.2rem;
+    }
+
+    /* 3D Canvas Area */
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform: translate(-50%, calc(50% + 12rem));
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.6;
+      animation: fadeHint 4s ease forwards;
+    }
+
+    @keyframes fadeHint {
+      0%, 60% { opacity: 0.6; }
+      100% { opacity: 0; }
+    }
+
+    /* Info Panel */
+    .info-panel {
+      position: relative;
+      z-index: 10;
+      padding: 1.5rem 3rem 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2rem;
+      border-top: 1px solid var(--border);
+      background: linear-gradient(to top, rgba(10,10,10,0.98) 60%, rgba(10,10,10,0.4));
+      pointer-events: none;
+    }
+
+    .info-panel * {
+      pointer-events: auto;
+    }
+
+    .info-block h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .info-block p {
+      font-size: 0.82rem;
+      line-height: 1.75;
+      color: #bbb;
+    }
+
+    .specs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem 1.5rem;
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .spec-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .spec-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .timeline {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .timeline li {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: #aaa;
+    }
+
+    .timeline .year {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.7rem;
+      color: var(--muted);
+      min-width: 2.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Decorative grid lines */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+    }
+
+    .orbit-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(70vw, 70vh);
+      height: min(70vw, 70vh);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .orbit-ring::before {
+      content: '';
+      position: absolute;
+      inset: -40px;
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 50%;
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 1.5rem 1.5rem 0.5rem; flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .info-panel { grid-template-columns: 1fr; padding: 1.5rem; gap: 1.5rem; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="orbit-ring"></div>
+
+  <div class="page">
+    <header>
+      <div class="title-group">
+        <h1>Sputnik 1</h1>
+        <p class="subtitle">斯普特尼克一号 · 人类第一颗人造卫星</p>
+      </div>
+      <div class="launch-date">
+        LAUNCH DATE
+        <span>1957.10.04</span>
+      </div>
+    </header>
+
+    <div id="canvas-container"></div>
+    <p class="hint">拖动旋转 · 滚轮缩放</p>
+
+    <footer class="info-panel">
+      <div class="info-block">
+        <h3>Overview · 概述</h3>
+        <p>
+          1957年10月4日，苏联在拜科努尔航天发射场用R-7火箭将斯普特尼克一号送入近地轨道，
+          开启了人类太空时代。这颗抛光铝合金球体仅58厘米直径，却承载着83.6千克的重量与全人类的仰望。
+          它以20 MHz和40 MHz频率向地面发送"哔—哔—"无线电信号，持续运行至1958年1月4日，
+          在轨共92天，绕地球约1440圈。
+        </p>
+      </div>
+
+      <div class="info-block">
+        <h3>Specifications · 参数</h3>
+        <div class="specs">
+          <div class="spec-item">
+            <span class="spec-label">直径</span>
+            <span class="spec-value">58 cm</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">质量</span>
+            <span class="spec-value">83.6 kg</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">天线</span>
+            <span class="spec-value">4 × 2.4–2.9 m</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">轨道高度</span>
+            <span class="spec-value">215–939 km</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">轨道周期</span>
+            <span class="spec-value">96.2 min</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">在轨时长</span>
+            <span class="spec-value">92 days</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <h3>Legacy · 历史意义</h3>
+        <ul class="timeline">
+          <li><span class="year">1957</span>首颗人造卫星入轨，引发"斯普特尼克危机"</li>
+          <li><span class="year">1958</span>美国成立NASA，太空竞赛全面展开</li>
+          <li><span class="year">1961</span>加加林完成首次载人航天飞行</li>
+          <li><span class="year">1969</span>阿波罗11号实现人类首次登月</li>
+        </ul>
+      </div>
+    </footer>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const container = document.getElementById('canvas-container');
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0.3, 4.2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.6;
+    container.appendChild(renderer.domElement);
+
+    // Environment map for metallic reflections
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 2.2;
+    controls.maxDistance = 7;
+    controls.enablePan = false;
+    controls.target.set(0, 0, 0);
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+
+    controls.addEventListener('start', () => { controls.autoRotate = false; });
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    keyLight.position.set(5, 8, 6);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xcccccc, 1.0);
+    fillLight.position.set(-4, 2, 3);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    rimLight.position.set(0, -1, -6);
+    scene.add(rimLight);
+
+    const spotLight = new THREE.SpotLight(0xffffff, 3, 15, Math.PI / 5, 0.3);
+    spotLight.position.set(2, 4, 4);
+    spotLight.target.position.set(0, 0, 0);
+    scene.add(spotLight);
+    scene.add(spotLight.target);
+
+    // --- Build Sputnik 1 Model ---
+    const sputnik = new THREE.Group();
+
+    // Main sphere body (58cm → scaled to ~1 unit)
+    const sphereRadius = 0.58;
+    const sphereGeo = new THREE.SphereGeometry(sphereRadius, 64, 64);
+    const sphereMat = new THREE.MeshPhysicalMaterial({
+      color: 0xe8e8e8,
+      metalness: 0.95,
+      roughness: 0.12,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: 1.5,
+    });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+    sputnik.add(sphere);
+
+    // Seam line (equatorial band detail)
+    const seamGeo = new THREE.TorusGeometry(sphereRadius * 1.001, 0.004, 8, 128);
+    const seamMat = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.9, roughness: 0.3 });
+    const seam = new THREE.Mesh(seamGeo, seamMat);
+    seam.rotation.x = Math.PI / 2;
+    sputnik.add(seam);
+
+    // Four antennas — two pairs at ~70° and ~35° from vertical
+    const antennaConfigs = [
+      { angle: 35,  azimuth: 0,   length: 2.8 },
+      { angle: 35,  azimuth: Math.PI, length: 2.8 },
+      { angle: 70,  azimuth: Math.PI / 2, length: 2.4 },
+      { angle: 70,  azimuth: -Math.PI / 2, length: 2.4 },
+    ];
+
+    const antennaMat = new THREE.MeshPhysicalMaterial({
+      color: 0xcccccc,
+      metalness: 0.98,
+      roughness: 0.08,
+      envMapIntensity: 1.2,
+    });
+
+    antennaConfigs.forEach(({ angle, azimuth, length }) => {
+      const rodRadius = 0.012;
+      const rodGeo = new THREE.CylinderGeometry(rodRadius, rodRadius * 0.7, length, 12);
+      const rod = new THREE.Mesh(rodGeo, antennaMat);
+      rod.castShadow = true;
+
+      // Position at sphere surface, tilt outward
+      const tiltRad = (angle * Math.PI) / 180;
+      const startX = Math.sin(tiltRad) * Math.cos(azimuth) * sphereRadius;
+      const startY = Math.cos(tiltRad) * sphereRadius;
+      const startZ = Math.sin(tiltRad) * Math.sin(azimuth) * sphereRadius;
+
+      rod.position.set(
+        startX + Math.sin(tiltRad) * Math.cos(azimuth) * length * 0.5,
+        startY + Math.cos(tiltRad) * length * 0.5,
+        startZ + Math.sin(tiltRad) * Math.sin(azimuth) * length * 0.5
+      );
+
+      // Orient rod along outward direction
+      const dir = new THREE.Vector3(
+        Math.sin(tiltRad) * Math.cos(azimuth),
+        Math.cos(tiltRad),
+        Math.sin(tiltRad) * Math.sin(azimuth)
+      ).normalize();
+      rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      sputnik.add(rod);
+
+      // Antenna tip sphere
+      const tipGeo = new THREE.SphereGeometry(rodRadius * 1.5, 8, 8);
+      const tip = new THREE.Mesh(tipGeo, antennaMat);
+      tip.position.copy(rod.position).add(dir.clone().multiplyScalar(length * 0.5));
+      sputnik.add(tip);
+    });
+
+    // Small mounting brackets at antenna bases
+    antennaConfigs.forEach(({ angle, azimuth }) => {
+      const tiltRad = (angle * Math.PI) / 180;
+      const bracketGeo = new THREE.BoxGeometry(0.04, 0.04, 0.04);
+      const bracket = new THREE.Mesh(bracketGeo, antennaMat);
+      bracket.position.set(
+        Math.sin(tiltRad) * Math.cos(azimuth) * sphereRadius,
+        Math.cos(tiltRad) * sphereRadius,
+        Math.sin(tiltRad) * Math.sin(azimuth) * sphereRadius
+      );
+      sputnik.add(bracket);
+    });
+
+    scene.add(sputnik);
+
+    // Subtle star field
+    const starCount = 600;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      starPositions[i]     = (Math.random() - 0.5) * 40;
+      starPositions[i + 1] = (Math.random() - 0.5) * 40;
+      starPositions[i + 2] = (Math.random() - 0.5) * 40;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, transparent: true, opacity: 0.7, sizeAttenuation: true });
+    scene.add(new THREE.Points(starGeo, starMat));
+
+    // Ground shadow plane
+    const shadowGeo = new THREE.PlaneGeometry(20, 20);
+    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+    const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = -2;
+    shadowPlane.receiveShadow = true;
+    scene.add(shadowPlane);
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
